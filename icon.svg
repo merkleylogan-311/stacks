@@ -1,0 +1,21 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#000000"/>
+
+  <!-- Books group, centered and scaled -->
+  <g transform="translate(96, 130) scale(10.67)">
+    <!-- Book 1: left, upright -->
+    <rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/>
+    <rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/>
+    <!-- Book 2: middle, tallest -->
+    <rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
+    <rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
+    <!-- Book 3: right, leaning against book 2 -->
+    <g transform="rotate(-12, 17.5, 1)">
+      <rect x="17.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/>
+      <rect x="18.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/>
+    </g>
+    <!-- Baseline -->
+    <line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>
