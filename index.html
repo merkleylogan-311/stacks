@@ -1,0 +1,3550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Stacks</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #000000;
+  --surface: #121212;
+  --surface2: #1e1e1e;
+  --surface3: #2a2a2a;
+  --text: #ffffff;
+  --text2: #a0a0a0;
+  --text3: #666666;
+  --accent: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  --accent-solid: #e6683c;
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #facc15;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --border: #262626;
+  --card-radius: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+
+/* ── App Shell ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo-text {
+  font-size: 24px;
+  font-weight: 800;
+  background: var(--accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.logo-icon { width: 30px; height: 24px; flex-shrink: 0; }
+
+.header-actions { display: flex; gap: 12px; align-items: center; }
+
+.header-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.header-btn svg { width: 22px; height: 22px; }
+
+/* ── Main Content ── */
+.main { flex: 1; overflow: hidden; position: relative; }
+
+.screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen.active { display: flex; }
+
+/* ── Bottom Nav ── */
+.nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 52px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  z-index: 10;
+  padding-bottom: 2px;
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.nav-btn.active { color: var(--text); }
+.nav-btn svg { width: 22px; height: 22px; }
+
+/* ── Category Pills ── */
+.category-pills {
+  display: flex;
+  gap: 8px;
+  padding: 10px 32px 10px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-pills::-webkit-scrollbar { display: none; }
+
+.cat-pill {
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cat-pill.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.cat-pill.for-you { border-color: var(--accent-solid); color: var(--accent-solid); }
+
+.cat-pill.for-you.active {
+  background: var(--accent-solid);
+  color: white;
+  border-color: var(--accent-solid);
+}
+
+/* ── Discover / Swipe ── */
+.discover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 12px 16px 16px;
+  position: relative;
+}
+
+.card-stack {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 470px;
+}
+
+.book-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.1s ease;
+  will-change: transform;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.book-card:active { cursor: grabbing; }
+
+.book-card.behind {
+  transform: scale(0.95) translateY(10px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.book-card.top { z-index: 1; }
+.book-card.swiping { transition: none; }
+
+.book-card.animate-out {
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  opacity: 0;
+}
+
+.card-image {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  object-fit: contain;
+  background: var(--surface2);
+  display: block;
+  padding: 12px 0;
+}
+
+.card-info { padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+
+.card-title {
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.card-author { font-size: 13px; color: var(--text2); line-height: 1.3; }
+
+.card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+.card-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--surface3);
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* Swipe Overlays */
+.swipe-overlay {
+  position: absolute;
+  top: 20px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  opacity: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.swipe-overlay.like { left: 20px; border: 3px solid var(--green); color: var(--green); transform: rotate(-15deg); }
+.swipe-overlay.nope { right: 20px; border: 3px solid var(--red); color: var(--red); transform: rotate(15deg); }
+
+/* Action Buttons */
+.swipe-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.swipe-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.swipe-btn:active { transform: scale(0.9); }
+.swipe-btn.reject { border-color: var(--red); color: var(--red); }
+.swipe-btn.undo { border-color: var(--yellow); color: var(--yellow); }
+.swipe-btn.save { border-color: var(--green); color: var(--green); }
+.swipe-btn.info-btn { border-color: var(--blue); color: var(--blue); }
+.swipe-btn svg { width: 22px; height: 22px; }
+
+/* Loading & Empty */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--surface3);
+  border-top-color: var(--accent-solid);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: var(--text2);
+  text-align: center;
+  padding: 32px;
+  font-size: 14px;
+}
+
+.empty-state .emoji { font-size: 40px; margin-bottom: 4px; }
+.empty-state h3 { color: var(--text); font-size: 17px; font-weight: 700; }
+
+/* ── Detail Modal ── */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  width: 100%;
+  max-width: 430px;
+  max-height: 90vh;
+  border-radius: 20px 20px 0 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--surface3);
+  border-radius: 2px;
+  margin: 10px auto;
+}
+
+.modal-cover {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  background: var(--surface2);
+  display: block;
+}
+
+.modal-body { padding: 16px 20px 24px; }
+
+.modal-title { font-size: 21px; font-weight: 800; margin-bottom: 2px; line-height: 1.3; }
+.modal-author { font-size: 14px; color: var(--text2); margin-bottom: 14px; }
+
+.modal-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.detail-item { display: flex; flex-direction: column; gap: 2px; }
+.detail-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.detail-value { font-size: 13px; color: var(--text); }
+
+.modal-subjects { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.subject-tag {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--surface3);
+  color: var(--text2);
+}
+
+.modal-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+
+/* Audiobook narration section */
+.narration-section {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.narration-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+.narration-info { display: flex; flex-direction: column; gap: 2px; }
+
+.narration-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+.narration-text { font-size: 13px; color: var(--text2); line-height: 1.4; }
+
+.narration-rec {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.narration-rec.recommended { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+.narration-rec.mixed { background: rgba(250, 204, 21, 0.15); color: var(--yellow); }
+
+.modal-actions { display: flex; gap: 10px; }
+
+.modal-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s;
+}
+
+.modal-btn:active { transform: scale(0.97); }
+.modal-btn.pass { background: var(--surface3); color: var(--text); }
+.modal-btn.keep { background: var(--accent-solid); color: white; }
+.modal-btn.mark-read { background: var(--blue); color: white; }
+.modal-btn.currently-reading { background: var(--green); color: #000; }
+
+/* ── Library / Read ── */
+.library, .read-screen { display: flex; flex-direction: column; padding: 14px 0 20px; gap: 14px; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.section-header h2 { font-size: 21px; font-weight: 800; }
+
+.section-count { font-size: 13px; color: var(--text2); }
+.refresh-books-btn {
+  background: var(--surface2); border: 1px solid var(--text3); color: var(--text);
+  font-size: 18px; width: 32px; height: 32px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0; margin-left: 8px;
+}
+.refresh-books-btn:active { background: var(--card); color: var(--text1); }
+
+
+/* ── Read Filters ── */
+.read-filters {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 0 16px;
+}
+
+.read-filter-select {
+  flex: 1;
+  padding: 9px 28px 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px 16px;
+}
+
+.grid-book {
+  aspect-ratio: 2/3;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.grid-book img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.grid-book-placeholder {
+  width: 100%; height: 100%;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text3);
+  padding: 6px;
+  text-align: center;
+}
+
+.grid-book .remove-btn {
+  position: absolute; top: 4px; right: 4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,0,0,0.7); border: none;
+  color: white; font-size: 12px;
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.grid-book:hover .remove-btn, .grid-book:active .remove-btn { display: flex; }
+
+/* Library select mode */
+.library-select-btn {
+  background: var(--surface2);
+  border: 1px solid var(--text3);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-left: 8px;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.library-select-btn.cancel {
+  background: var(--surface3);
+  color: var(--text2);
+}
+.library-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface2);
+  margin: 0 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+.library-delete-btn {
+  background: var(--red);
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.grid-book.select-mode { cursor: pointer; }
+.grid-book.select-mode.selected {
+  outline: 3px solid var(--accent-solid);
+  outline-offset: -3px;
+}
+.grid-book.select-mode .grid-book-checkbox {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid white;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.grid-book.select-mode.selected .grid-book-checkbox {
+  background: var(--accent-solid);
+  border-color: white;
+}
+
+/* ── Read List Items ── */
+.read-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
+
+.read-item {
+  display: flex;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.read-item-img {
+  width: 52px;
+  height: 78px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+
+.read-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+
+.read-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.read-item-author { font-size: 12px; color: var(--text2); }
+
+.read-item-stars { color: var(--yellow); font-size: 13px; letter-spacing: 1px; }
+
+.reading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 0.3px;
+}
+
+.reading-badge .pulse-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.read-meta-tag.currently-reading { background: rgba(74,222,128,0.15); color: var(--green); }
+
+.read-item-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.read-meta-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: var(--surface3);
+  color: var(--text3);
+}
+
+.read-meta-tag.audiobook { background: rgba(167,139,250,0.15); color: var(--purple); }
+.read-meta-tag.physical { background: rgba(96,165,250,0.15); color: var(--blue); }
+
+.read-item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.read-remove-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface3); border: none;
+  color: var(--text3); font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+/* ── Stats ── */
+.stats { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+.stats h2 { font-size: 21px; font-weight: 800; margin-bottom: 4px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number { font-size: 28px; font-weight: 800; }
+
+.stat-number.gradient {
+  background: var(--accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label { font-size: 12px; color: var(--text2); }
+
+.genre-breakdown {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.genre-breakdown h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+
+/* Year goal card */
+.year-goal-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 0;
+}
+.year-goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.year-goal-header h3 { font-size: 15px; font-weight: 600; }
+.year-goal-edit {
+  background: var(--surface2);
+  border: 1px solid var(--text3);
+  color: var(--text);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.year-goal-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.year-goal-num {
+  font-size: 22px;
+  font-weight: 800;
+  background: var(--accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.year-goal-pages {
+  font-size: 12px;
+  color: var(--text2);
+}
+.year-goal-bar {
+  height: 10px;
+  background: var(--surface3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.year-goal-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+.year-goal-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.year-goal-edit-row input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.year-goal-edit-row input:focus { border-color: var(--accent-solid); }
+.year-goal-edit-row button {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent-solid);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.genre-bar-container { display: flex; flex-direction: column; gap: 10px; }
+.genre-bar-item { display: flex; flex-direction: column; gap: 3px; }
+.genre-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
+
+.genre-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+
+.genre-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s ease; }
+
+/* ── Search ── */
+.search-screen { padding: 14px 16px; gap: 14px; }
+
+.search-screen h2 { font-size: 21px; font-weight: 800; margin-bottom: 4px; }
+
+.search-bar { display: flex; gap: 8px; position: relative; }
+
+.search-clear {
+  position: absolute;
+  right: 90px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: none;
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.search-clear.visible { display: flex; }
+
+.search-input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus { border-color: var(--accent-solid); }
+
+.search-go {
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent-solid);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.search-results { display: flex; flex-direction: column; gap: 10px; }
+
+.search-result-item {
+  display: flex;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.search-result-img {
+  width: 52px;
+  height: 78px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+
+.search-result-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.search-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-author { font-size: 12px; color: var(--text2); }
+.search-result-year { font-size: 11px; color: var(--text3); }
+
+.search-result-add {
+  margin-left: auto;
+  align-self: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  background: none;
+  color: var(--green);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: calc(80px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(150px);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 200;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  opacity: 0;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── Rate Modal ── */
+.rate-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 150;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.rate-modal-overlay.open { display: flex; }
+
+.rate-modal {
+  background: var(--surface);
+  width: 88%;
+  max-width: 340px;
+  border-radius: 20px;
+  padding: 24px 20px;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.rate-modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+.rate-modal .rate-subtitle { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+
+.rate-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rate-stars .star {
+  font-size: 34px;
+  cursor: pointer;
+  color: var(--surface3);
+  transition: color 0.15s, transform 0.15s;
+}
+
+.rate-stars .star.filled { color: var(--yellow); }
+.rate-stars .star:hover { transform: scale(1.15); }
+
+/* Date picker and format selector */
+.rate-field { margin-bottom: 14px; text-align: left; }
+
+.rate-field-label {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.rate-date-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.rate-date-input:focus { border-color: var(--accent-solid); }
+
+.format-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.format-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.format-btn.active {
+  border-color: var(--accent-solid);
+  color: var(--text);
+  background: rgba(230,104,60,0.1);
+}
+
+.format-btn .fmt-icon { font-size: 16px; }
+
+.rate-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+.rate-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rate-btn.cancel { background: var(--surface3); color: var(--text); }
+.rate-btn.confirm { background: var(--accent-solid); color: white; }
+
+/* For You badge */
+.for-you-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--accent-solid);
+  color: white;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+/* ── Profile Avatar Button ── */
+.profile-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+  cursor: pointer; flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.profile-btn:active { opacity: 0.7; }
+
+/* ── Profile Sheet ── */
+.profile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 150;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.profile-overlay.open { display: flex; }
+.profile-sheet {
+  background: var(--surface);
+  width: 100%; max-width: 430px;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 20px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.3s ease;
+}
+.profile-handle {
+  width: 36px; height: 4px; background: var(--surface3);
+  border-radius: 2px; margin: 12px auto 20px;
+}
+.profile-sheet-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.profile-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.profile-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 12px;
+  background: var(--surface2); cursor: pointer;
+  border: 2px solid transparent; transition: border-color 0.2s;
+}
+.profile-item.active { border-color: var(--accent-solid); }
+.profile-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.profile-name { font-size: 15px; font-weight: 600; flex: 1; }
+.profile-active-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-solid); flex-shrink: 0; }
+.profile-del-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface3); border: none;
+  color: var(--text3); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.profile-add-btn {
+  width: 100%; padding: 13px; border-radius: 12px;
+  border: 1px dashed var(--border); background: none;
+  color: var(--text2); font-size: 14px; font-family: inherit;
+  cursor: pointer; margin-bottom: 10px; font-weight: 500;
+  transition: border-color 0.2s, color 0.2s;
+}
+.profile-add-btn:hover { border-color: var(--text2); color: var(--text); }
+.profile-new-row {
+  display: none; gap: 8px;
+}
+.profile-new-row.visible { display: flex; }
+.profile-name-input {
+  flex: 1; padding: 11px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+}
+.profile-name-input:focus { border-color: var(--accent-solid); }
+.profile-create-btn {
+  padding: 11px 18px; border-radius: 12px; border: none;
+  background: var(--accent-solid); color: white;
+  font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer;
+}
+
+/* ── Library Filter ── */
+.library-filter { padding: 0 16px; display: flex; gap: 8px; align-items: center; }
+
+/* ── Auth Overlay ── */
+.auth-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.auth-overlay.hidden { display: none; }
+.auth-card {
+  width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0;
+}
+.auth-logo-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; margin-bottom: 8px;
+}
+.auth-logo-wrap .logo-icon { width: 48px; height: 38px; }
+.auth-app-name {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.auth-tagline {
+  font-size: 14px; color: var(--text2); margin-bottom: 32px; text-align: center;
+}
+.auth-google-btn {
+  width: 100%; padding: 14px 20px;
+  border-radius: 14px; border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text); font-size: 15px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 16px;
+}
+.auth-google-btn:hover { background: var(--surface3); border-color: var(--text3); }
+.auth-google-btn svg { flex-shrink: 0; }
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; margin-bottom: 16px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.auth-divider span { font-size: 12px; color: var(--text3); }
+.auth-email-form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.auth-input {
+  width: 100%; padding: 13px 16px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  font-size: 15px; font-family: inherit; outline: none;
+  transition: border-color 0.15s;
+  -webkit-user-select: text; user-select: text;
+}
+.auth-input:focus { border-color: var(--accent-solid); }
+.auth-error {
+  font-size: 13px; color: var(--red); min-height: 0;
+  text-align: center; display: none;
+}
+.auth-error.visible { display: block; }
+.auth-submit-btn {
+  width: 100%; padding: 14px;
+  border-radius: 14px; border: none;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white; font-size: 15px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.auth-submit-btn:active { opacity: 0.8; }
+.auth-toggle-btn {
+  background: none; border: none; color: var(--text2);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+  padding: 4px; text-align: center; width: 100%;
+  transition: color 0.15s;
+}
+.auth-toggle-btn:hover { color: var(--text); }
+.auth-guest-btn {
+  background: none; border: none; color: var(--text3);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+  padding: 12px; margin-top: 4px;
+  transition: color 0.15s;
+}
+.auth-guest-btn:hover { color: var(--text2); }
+
+/* Sign Out button in profile sheet */
+.profile-signout-btn {
+  width: 100%; padding: 13px; border-radius: 12px;
+  border: 1px solid var(--border); background: none;
+  color: var(--red); font-size: 14px; font-family: inherit;
+  cursor: pointer; font-weight: 500; margin-top: 4px;
+  transition: background 0.15s;
+}
+.profile-signout-btn:hover { background: var(--surface2); }
+
+/* Change Photo + Goodreads Import buttons */
+.profile-action-btn {
+  width: 100%; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: none;
+  color: var(--text2); font-size: 13px; font-family: inherit;
+  cursor: pointer; margin-top: 8px; text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.profile-action-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* Goodreads Import Modal */
+.import-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg); z-index: 300;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.import-overlay.hidden { display: none; }
+.import-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(16px + var(--safe-top)) 16px 16px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.import-close-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); border: none; color: var(--text2);
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.import-title { font-size: 18px; font-weight: 700; }
+.import-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.import-instructions {
+  font-size: 14px; color: var(--text2); line-height: 1.6;
+}
+.import-link { color: var(--accent-solid); text-decoration: none; }
+.import-link:hover { text-decoration: underline; }
+.import-file-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px; border-radius: 14px;
+  border: 1.5px dashed var(--border); background: var(--surface2);
+  color: var(--text); font-size: 14px; font-weight: 500; font-family: inherit;
+  cursor: pointer; transition: border-color 0.2s, background 0.15s;
+}
+.import-file-btn:hover { border-color: var(--text3); background: var(--surface3); }
+.import-preview {
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--surface2); font-size: 14px; line-height: 1.7;
+}
+.import-preview strong { color: var(--text); }
+.import-progress {
+  font-size: 13px; color: var(--text2); text-align: center; padding: 8px 0;
+}
+.import-go-btn {
+  width: 100%; padding: 15px; border-radius: 14px; border: none;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white; font-size: 15px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.import-go-btn:disabled { opacity: 0.5; cursor: default; }
+.import-go-btn:not(:disabled):active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">
+      <span class="logo-text">Stacks</span>
+      <svg class="logo-icon" viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Book 1: left, upright -->
+        <rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/>
+        <rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/>
+        <!-- Book 2: middle, tallest -->
+        <rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
+        <rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
+        <!-- Book 3: right, leaning against book 2 -->
+        <g transform="rotate(-18, 26, 22)">
+          <rect x="19.5" y="4" width="7" height="18" rx="1" fill="#bc1888"/>
+          <rect x="20.5" y="4" width="1.5" height="18" fill="rgba(0,0,0,0.2)"/>
+        </g>
+        <!-- Baseline -->
+        <line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="header-actions">
+      <button class="profile-btn" id="profileBtn" onclick="showProfileModal()" title="Profiles"></button>
+    </div>
+  </div>
+
+  <div class="category-pills" id="categoryPills">
+    <button class="cat-pill active" data-cat="all" onclick="selectCategory('all')">All</button>
+    <button class="cat-pill for-you" data-cat="for-you" onclick="selectCategory('for-you')">For You</button>
+    <button class="cat-pill" data-cat="fiction" onclick="selectCategory('fiction')">Fiction</button>
+    <button class="cat-pill" data-cat="science_fiction" onclick="selectCategory('science_fiction')">Sci-Fi</button>
+    <button class="cat-pill" data-cat="memoir" onclick="selectCategory('memoir')">Memoirs</button>
+    <button class="cat-pill" data-cat="self-help" onclick="selectCategory('self-help')">Self-Help</button>
+    <button class="cat-pill" data-cat="business" onclick="selectCategory('business')">Business</button>
+    <button class="cat-pill" data-cat="lds" onclick="selectCategory('lds')">LDS</button>
+    <button class="cat-pill" data-cat="new_releases" onclick="selectCategory('new_releases')">New Releases</button>
+    <button class="cat-pill" data-cat="technology" onclick="selectCategory('technology')">Technology</button>
+  </div>
+
+  <div class="main">
+    <!-- Discover -->
+    <div class="screen active" id="screen-discover">
+      <div class="discover" id="discoverArea">
+        <div class="loading-spinner" id="loadingState"><div class="spinner"></div><span>Finding books for you...</span></div>
+        <div class="card-stack" id="cardStack" style="display:none;"></div>
+        <div class="swipe-actions" id="swipeActions" style="display:none;">
+          <button class="swipe-btn reject" onclick="swipeCard('left')" title="Pass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          <button class="swipe-btn undo" onclick="undoSwipe()" title="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 015 5v2M3 10l5-5M3 10l5 5"/></svg></button>
+          <button class="swipe-btn info-btn" onclick="showDetail(currentBooks[0])" title="Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+          <button class="swipe-btn save" onclick="swipeCard('right')" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
+        </div>
+        <div class="empty-state" id="emptyState" style="display:none;"><div class="emoji">📚</div><h3>No more books!</h3><p>Switch categories or search to find more</p></div>
+      </div>
+    </div>
+
+    <!-- Library -->
+    <div class="screen" id="screen-library">
+      <div class="library">
+        <div class="section-header">
+          <h2>Library</h2>
+          <span class="section-count" id="libraryCount">0 books</span>
+          <button class="library-select-btn" id="librarySelectBtn" onclick="toggleLibrarySelect()">Select</button>
+        </div>
+        <div class="library-select-bar" id="librarySelectBar" style="display:none">
+          <span id="librarySelectedCount">0 selected</span>
+          <button class="library-delete-btn" onclick="confirmLibraryMassDelete()">Delete</button>
+        </div>
+        <div class="library-filter">
+          <button class="refresh-books-btn" onclick="refreshBooksWithGoogleData()" title="Refresh book data">↻</button>
+          <select class="read-filter-select" id="libraryGenreSelect" onchange="selectShelf(this.value)">
+            <option value="all">All Genres</option>
+            <option value="fiction">Fiction</option>
+            <option value="science_fiction">Sci-Fi</option>
+            <option value="memoir">Memoirs</option>
+            <option value="self-help">Self-Help</option>
+            <option value="business">Business</option>
+            <option value="lds">LDS</option>
+            <option value="technology">Technology</option>
+          </select>
+        </div>
+        <div class="book-grid" id="bookGrid"></div>
+        <div class="empty-state" id="libraryEmpty"><div class="emoji">❤️</div><h3>Your library is empty</h3><p>Swipe right on books you love to save them here</p></div>
+      </div>
+    </div>
+
+    <!-- Read -->
+    <div class="screen" id="screen-read">
+      <div class="read-screen">
+        <div class="section-header"><h2>Read</h2><span class="section-count" id="readCount">0 books</span><button class="refresh-books-btn" onclick="refreshBooksWithGoogleData()" title="Refresh book data">↻</button></div>
+        <div class="read-filters">
+          <select class="read-filter-select" id="readRatingSelect" onchange="selectReadRating(this.value)">
+            <option value="all">All Books</option>
+            <option value="reading">Currently Reading</option>
+            <option value="5">★★★★★  5 Stars</option>
+            <option value="4">★★★★  4 Stars</option>
+            <option value="3">★★★  3 Stars</option>
+            <option value="low">★★  1–2 Stars</option>
+          </select>
+          <select class="read-filter-select" id="readGenreSelect" onchange="selectReadGenre(this.value)">
+            <option value="all">All Genres</option>
+            <option value="fiction">Fiction</option>
+            <option value="science_fiction">Sci-Fi</option>
+            <option value="memoir">Memoirs</option>
+            <option value="self-help">Self-Help</option>
+            <option value="business">Business</option>
+            <option value="lds">LDS</option>
+            <option value="technology">Technology</option>
+          </select>
+        </div>
+        <div class="read-list" id="readList"></div>
+        <div class="empty-state" id="readEmpty"><div class="emoji">📖</div><h3>No books read yet</h3><p>Mark books as read from the detail view or your library</p></div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="screen" id="screen-search">
+      <div class="search-screen">
+        <h2>Search</h2>
+        <div class="search-bar">
+          <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search">
+          <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+          <button class="search-go" onclick="doSearch()">Search</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="screen" id="screen-stats">
+      <div class="stats">
+        <h2>Your Stats</h2>
+        <div class="year-goal-card">
+          <div class="year-goal-header">
+            <h3 id="yearGoalTitle">Reading Goal</h3>
+            <button class="year-goal-edit" onclick="openGoalEditor()" title="Set goal">✎</button>
+          </div>
+          <div class="year-goal-stats">
+            <div class="year-goal-num"><span id="yearBooksRead">0</span> / <span id="yearGoal">—</span> books</div>
+            <div class="year-goal-pages"><span id="yearPagesRead">0</span> pages read</div>
+          </div>
+          <div class="year-goal-bar"><div class="year-goal-fill" id="yearGoalFill" style="width:0%"></div></div>
+          <div class="year-goal-edit-row" id="yearGoalEditRow" style="display:none">
+            <input type="number" min="0" id="yearGoalInput" placeholder="Books per year">
+            <button onclick="saveYearlyGoal()">Save</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-number gradient" id="statSwiped">0</span><span class="stat-label">Books swiped</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statSaved">0</span><span class="stat-label">Books saved</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statPassed">0</span><span class="stat-label">Books passed</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statRead">0</span><span class="stat-label">Books read</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statRate">0%</span><span class="stat-label">Save rate</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statAvgRating">—</span><span class="stat-label">Avg rating</span></div>
+        </div>
+        <div class="genre-breakdown"><h3>Genre Breakdown</h3><div class="genre-bar-container" id="genreBars"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-tab="discover" onclick="switchTab('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Discover</button>
+    <button class="nav-btn" data-tab="search" onclick="switchTab('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Search</button>
+    <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Library</button>
+    <button class="nav-btn" data-tab="read" onclick="switchTab('read')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Read</button>
+    <button class="nav-btn" data-tab="stats" onclick="switchTab('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Stats</button>
+  </nav>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    <div class="modal-handle"></div>
+    <img class="modal-cover" id="modalCover" src="" alt="">
+    <div class="modal-body">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-author" id="modalAuthor"></div>
+      <div class="modal-details">
+        <div class="detail-item"><span class="detail-label">Pages</span><span class="detail-value" id="modalPages">—</span></div>
+        <div class="detail-item"><span class="detail-label">Published</span><span class="detail-value" id="modalYear">—</span></div>
+        <div class="detail-item"><span class="detail-label">Rating</span><span class="detail-value" id="modalRating">—</span></div>
+        <div class="detail-item"><span class="detail-label">Genre</span><span class="detail-value" id="modalGenre">—</span></div>
+      </div>
+      <div class="modal-subjects" id="modalSubjects"></div>
+      <div class="modal-description" id="modalDesc"></div>
+      <div class="narration-section" id="narrationSection" style="display:none;">
+        <div class="narration-icon">🎧</div>
+        <div class="narration-info">
+          <div class="narration-label">Audiobook Narration</div>
+          <div class="narration-text" id="narrationText"></div>
+          <div id="narrationBadge"></div>
+        </div>
+      </div>
+      <div class="modal-actions" id="modalActions">
+        <button class="modal-btn pass" onclick="modalSwipe('left')">Pass</button>
+        <button class="modal-btn currently-reading" onclick="markCurrentlyReading()">Reading</button>
+        <button class="modal-btn mark-read" onclick="openRateModal()">Mark as Read</button>
+        <button class="modal-btn keep" onclick="modalSwipe('right')">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rate Modal -->
+<div class="rate-modal-overlay" id="rateModal" onclick="closeRateModal(event)">
+  <div class="rate-modal" onclick="event.stopPropagation()">
+    <h3 id="rateModalTitle">Rate this book</h3>
+    <div class="rate-subtitle" id="rateModalSubtitle"></div>
+    <div class="rate-stars" id="rateStars">
+      <span class="star" onclick="setRating(1)">★</span>
+      <span class="star" onclick="setRating(2)">★</span>
+      <span class="star" onclick="setRating(3)">★</span>
+      <span class="star" onclick="setRating(4)">★</span>
+      <span class="star" onclick="setRating(5)">★</span>
+    </div>
+    <div class="rate-field">
+      <span class="rate-field-label">Started</span>
+      <input type="date" class="rate-date-input" id="rateDateStartedInput">
+    </div>
+    <div class="rate-field">
+      <span class="rate-field-label">Finished</span>
+      <input type="date" class="rate-date-input" id="rateDateFinishedInput">
+    </div>
+    <div class="rate-field">
+      <span class="rate-field-label">Format</span>
+      <div class="format-selector">
+        <button class="format-btn" data-fmt="physical" onclick="selectFormat('physical')"><span class="fmt-icon">📕</span> Physical</button>
+        <button class="format-btn" data-fmt="audiobook" onclick="selectFormat('audiobook')"><span class="fmt-icon">🎧</span> Audiobook</button>
+        <button class="format-btn" data-fmt="ebook" onclick="selectFormat('ebook')"><span class="fmt-icon">📱</span> E-Book</button>
+      </div>
+    </div>
+    <div class="rate-actions">
+      <button class="rate-btn cancel" onclick="closeRateModal()">Cancel</button>
+      <button class="rate-btn confirm" onclick="confirmMarkRead()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Auth Overlay -->
+<div class="auth-overlay hidden" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo-wrap">
+      <svg class="logo-icon" viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/>
+        <rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/>
+        <rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
+        <rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
+        <g transform="rotate(-18, 25, 22)">
+          <rect x="19.5" y="4" width="7" height="18" rx="1" fill="#bc1888"/>
+          <rect x="20.5" y="4" width="1.5" height="18" fill="rgba(0,0,0,0.2)"/>
+        </g>
+        <line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#f09433" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="auth-app-name">Stacks</div>
+    </div>
+    <p class="auth-tagline">Your personal book discovery app</p>
+
+    <button class="auth-google-btn" onclick="authSignInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="auth-divider"><span>or sign in with email</span></div>
+
+    <div class="auth-email-form">
+      <input type="email" class="auth-input" id="authEmail" placeholder="Email address"
+        onkeydown="if(event.key==='Enter')document.getElementById('authPassword').focus()">
+      <input type="password" class="auth-input" id="authPassword" placeholder="Password"
+        onkeydown="if(event.key==='Enter')authSubmit()">
+      <div class="auth-error" id="authError"></div>
+      <button class="auth-submit-btn" id="authSubmitBtn" onclick="authSubmit()">Sign In</button>
+      <button class="auth-toggle-btn" id="authToggleBtn" onclick="toggleAuthMode()">Create an account instead</button>
+    </div>
+
+    <button class="auth-guest-btn" onclick="continueAsGuest()">Continue as Guest</button>
+  </div>
+</div>
+
+<!-- Profile Sheet -->
+<div class="profile-overlay" id="profileOverlay" onclick="closeProfileModal(event)">
+  <div class="profile-sheet" onclick="event.stopPropagation()">
+    <div class="profile-handle"></div>
+    <div class="profile-sheet-title">Account</div>
+    <div class="profile-list" id="profileList"></div>
+    <button class="profile-add-btn" id="profileAddBtn" onclick="toggleNewProfileForm()">+ Add Profile</button>
+    <div class="profile-new-row" id="profileNewRow">
+      <input class="profile-name-input" id="profileNameInput" placeholder="Your name…" maxlength="20"
+        onkeydown="if(event.key==='Enter')confirmNewProfile()">
+      <button class="profile-create-btn" onclick="confirmNewProfile()">Create</button>
+    </div>
+    <input type="file" id="photoFileInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+    <button class="profile-signout-btn" id="profileSignOutBtn" onclick="authSignOut()" style="display:none">Sign Out</button>
+  </div>
+</div>
+
+<!-- Goodreads Import Modal -->
+<div class="import-overlay hidden" id="importOverlay">
+  <div class="import-header">
+    <button class="import-close-btn" onclick="closeImportModal()">✕</button>
+    <div class="import-title">Import from Goodreads</div>
+  </div>
+  <div class="import-body">
+    <p class="import-instructions">
+      First, export your library from Goodreads:<br>
+      1. Go to <a href="https://www.goodreads.com/review/import" target="_blank" class="import-link">goodreads.com/review/import</a><br>
+      2. Scroll to the bottom and tap <strong style="color:var(--text)">Export Library</strong><br>
+      3. Download the CSV file, then upload it here.
+    </p>
+    <label class="import-file-btn">
+      📂 Choose CSV File
+      <input type="file" id="importFileInput" accept=".csv,text/csv" style="display:none" onchange="handleImportFile(event)">
+    </label>
+    <div class="import-preview" id="importPreview" style="display:none"></div>
+    <div class="import-progress" id="importProgress" style="display:none"></div>
+    <button class="import-go-btn" id="importGoBtn" onclick="runGoodreadsImport()" style="display:none">Import Books</button>
+  </div>
+</div>
+
+<script>
+// ─── Firebase ───
+// Create a project at https://console.firebase.google.com, then paste your config here.
+// Enable Authentication (Google + Email/Password) and Firestore Database in the console.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC8KwOpZwgSPNn8ZfQO_5KsRebBh07r4Ms",
+  authDomain: "stacks-7fbea.firebaseapp.com",
+  projectId: "stacks-7fbea",
+  storageBucket: "stacks-7fbea.firebasestorage.app",
+  messagingSenderId: "913857068634",
+  appId: "1:913857068634:web:38a94af60c3630940ea263",
+  measurementId: "G-1B9TTVHX34"
+};
+
+const FIREBASE_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith('REPLACE');
+let _fbAuth = null, _fbDb = null, currentUser = null, _guestMode = false, _appInited = false;
+let _customPhotoURL = null;
+let _authMode = 'signin'; // 'signin' | 'signup'
+
+if (FIREBASE_CONFIGURED) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    _fbAuth = firebase.auth();
+    _fbDb = firebase.firestore();
+  } catch(e) { console.warn('Firebase init failed:', e); }
+}
+
+// ─── Profiles ───
+const PROFILE_COLORS = ['#f09433','#dc2743','#bc1888','#60a5fa','#4ade80','#facc15','#a78bfa','#f87171'];
+let profiles = JSON.parse(localStorage.getItem('stacks_profiles') || '[]');
+let currentProfileId = localStorage.getItem('stacks_current') || '';
+
+if (!profiles.length || !currentProfileId) {
+  const id = 'p_' + Date.now();
+  // Migrate any existing un-namespaced data
+  ['saved','read','stats','seen'].forEach(k => {
+    const v = localStorage.getItem('stacks_' + k);
+    if (v && v !== '[]') localStorage.setItem('stacks_' + k + '_' + id, v);
+  });
+  profiles = [{ id, name: 'Me', color: PROFILE_COLORS[0] }];
+  currentProfileId = id;
+  localStorage.setItem('stacks_profiles', JSON.stringify(profiles));
+  localStorage.setItem('stacks_current', currentProfileId);
+}
+
+function profileKey(k) {
+  if (currentUser) return 'stacks_' + k + '_' + currentUser.uid;
+  return 'stacks_' + k + '_' + currentProfileId;
+}
+
+// ─── State ───
+let currentBooks = [];
+let savedBooks = JSON.parse(localStorage.getItem(profileKey('saved')) || '[]');
+let readBooks = JSON.parse(localStorage.getItem(profileKey('read')) || '[]');
+let swipeHistory = [];
+let stats = JSON.parse(localStorage.getItem(profileKey('stats')) || '{"swiped":0,"saved":0,"passed":0,"read":0,"genres":{},"yearlyGoal":0}');
+if (typeof stats.yearlyGoal !== 'number') stats.yearlyGoal = 0;
+let currentCategory = 'all';
+let currentShelf = 'all';
+let currentReadRating = 'all';
+let currentReadGenre = 'all';
+let seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
+let isFetching = false;
+let touchDeltaX = 0, isDragging = false;
+let pendingRating = 0;
+let pendingFormat = '';
+let editingBookKey = null; // null = marking new; non-null = editing existing read book
+let librarySelectMode = false;
+let librarySelected = new Set(); // book keys
+
+// ─── Summary / Non-Original Filter ───
+const SUMMARY_PATTERNS = [
+  /\bsummary\b/i, /\bsummarized\b/i, /\bspeed\s*read/i, /\bquick\s*read/i,
+  /\boverview\b/i, /\bcliff\s*notes/i, /\bcliffsnotes/i, /\bspark\s*notes/i,
+  /\bstudy\s*guide\b/i, /\breview\s*&?\s*analysis/i, /\bbook\s*review\b/i,
+  /\bbook\s*summary\b/i, /\bchapter\s*summary/i, /\babridged\b/i,
+  /\bcondensed\b/i, /\bfor\s*dummies\b/i, /\bin\s*\d+\s*minutes/i,
+  /\bkey\s*(take\s*aways?|ideas?|lessons?|insights?)\b/i,
+  /\bworkbook\b/i, /\bcompanion\s*guide\b/i, /\breader'?s?\s*guide\b/i,
+  /\banalysis\s*of\b/i, /\bcomprehensive\s*summary\b/i,
+  /\binstant\s*summary\b/i, /\bsuperSummary\b/i, /\bbright\s*summaries\b/i,
+  /\bshort\s*summary\b/i, /\b30\s*second/i, /\bblinkist\b/i,
+  /\bgetabstract\b/i, /\bexecutive\s*summary\b/i,
+  // Textbooks, manuals, guides, instructional, reference works
+  /\btext\s*book\b/i, /\bmanual\b/i, /\bhandbook\b/i,
+  /\bguide\s+to\b/i, /\bcomplete\s+guide\b/i, /\bbeginner'?s?\s+guide\b/i,
+  /\bpractical\s+guide\b/i, /\bpocket\s+guide\b/i, /\bessential\s+guide\b/i,
+  /\bultimate\s+guide\b/i, /\bofficial\s+guide\b/i, /\bvisual\s+guide\b/i,
+  /\binstructional\b/i, /\binstruction\s+manual\b/i, /\btutorial\b/i,
+  /\bexam\s+prep/i, /\btest\s+prep/i, /\bpractice\s+(test|exam)/i,
+  /\bprep\s+book\b/i, /\bstudy\s+companion\b/i,
+  /\bdictionary\b/i, /\bencyclopedia\b/i, /\bglossary\b/i, /\bthesaurus\b/i,
+  /\bcoursebook\b/i, /\bcourse\s+book\b/i, /\blesson\s+plan/i,
+  /\bgrammar\s+(book|workbook)\b/i, /\bvocabulary\s+builder\b/i,
+  // Collections, anthologies, omnibus, boxed sets, series bundles
+  /\bcollected\s+works\b/i, /\bcollection\b/i, /\bcomplete\s+works\b/i,
+  /\bomnibus\b/i, /\bbox\s*set\b/i, /\bboxed\s+set\b/i,
+  /\banthology\b/i, /\banthologies\b/i, /\bcompendium\b/i,
+  /\bseries\b/i, /\btrilogy\b/i, /\bbooks?\s+\d/i,
+  /\b\d+[\s-]*book\s*(set|bundle|collection)\b/i,
+  /\bbundle\b/i, /\bcomplete\s+(set|edition)\b/i,
+  // Scientific papers, research, journals, proceedings, academic
+  /\bjournal\s+of\b/i, /\bproceedings\s+of\b/i, /\bproceedings\b/i,
+  /\bresearch\s+(on|in|paper|study|studies)\b/i,
+  /\bscientific\s+(paper|study|review)\b/i,
+  /\bdissertation\b/i, /\bthesis\b/i, /\bseminar\s*paper\b/i,
+  /\bseminar\b/i, /\bmonograph\b/i, /\bwhite\s+paper\b/i,
+  /\bclinical\s+(study|trial|guide)\b/i,
+  /\bwith\s+related\s+texts\b/i, /\bedited\s+and\s+translated\b/i,
+  /\buser('?s)?\s+manual\b/i, /\bowner('?s)?\s+manual\b/i,
+  /\binstruction\s+book\b/i, /\bhow\s+to\b/i,
+  // Derivative / knockoff / fan books about other authors' works
+  /\bevolutionary\s+ideas\b/i, /\bfacts\s+about\b/i,
+  /\bfan\s+(book|guide|companion)\b/i, /\bunofficial\s+(guide|companion)\b/i,
+  /\binsider'?s?\s+(guide|look)\b/i,
+  /\b\w+'s\b.{1,30}\b(theory|method|approach|framework|principles|philosophy|ideas|strategies|secrets|formula|playbook|blueprint|toolkit)\b/i
+];
+
+function isOriginalBook(book) {
+  // Must have cover art with a real embedded image (not a placeholder)
+  if (!book._coverUrl) return false;
+  if (!book._hasRealCover) return false;
+
+  // Reject public-domain scans — these are typically old books with poor,
+  // black-and-white photocopied covers from Google's scanning project
+  if (book._publicDomain) return false;
+
+  // English language only — skip if language data exists but doesn't include English
+  const langs = book.language || [];
+  if (langs.length > 0 && !langs.includes('eng') && !langs.includes('en')) return false;
+
+  // Heuristic for missing language metadata: reject titles with high ratio of
+  // non-Latin characters (CJK, Cyrillic, Arabic, Hebrew, Devanagari, etc.)
+  const title = book.title || '';
+  if (title) {
+    const letters = title.replace(/[^A-Za-z\u00C0-\u024F\u4E00-\u9FFF\u0400-\u04FF\u0600-\u06FF\u0590-\u05FF\u0900-\u097F]/g, '');
+    if (letters.length >= 4) {
+      const nonLatin = letters.replace(/[A-Za-z\u00C0-\u024F]/g, '').length;
+      if (nonLatin / letters.length > 0.3) return false;
+    }
+  }
+
+  // Quality gate: prefer well-known, highly-rated books
+  const rc = book.ratings_count || 0;
+  const ra = book.ratings_average || 0;
+  if (rc > 0 && rc < 3) return false;          // too few ratings = likely obscure
+  if (rc >= 10 && ra < 3.0) return false;      // enough data to know it's poorly rated
+  if (rc >= 30 && ra < 3.3) return false;      // below average
+  if (rc >= 100 && ra < 3.5) return false;     // popular but mediocre
+
+  // No summaries, study guides, textbooks, manuals, guides, or derivative content
+  for (const p of SUMMARY_PATTERNS) { if (p.test(title)) return false; }
+  const authors = (book.author_name || []).join(' ').toLowerCase();
+  const bad = ['sparknotes','cliffsnotes','supersummary','blinkist','getabstract',
+    'bright summaries','bookcaps','instaread','wikipedians','grin verlag','grin publishing',
+    'independently published','createspace'];
+  for (const b of bad) { if (authors.includes(b)) return false; }
+
+  // Detect derivative / knockoff books: title references a famous person's name
+  // but the actual author is someone else (e.g. "Simon Sinek's Start with Why Theory" by Marcellus Grey)
+  const possessiveMatch = title.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)'s\b/);
+  if (possessiveMatch) {
+    const referencedName = possessiveMatch[1].toLowerCase();
+    if (!authors.includes(referencedName.split(' ').pop())) return false;
+  }
+
+  // Filter out non-novel categories: study aids, reference, science, history, manuals, etc.
+  const cats = (book.subject || []).join(' ').toLowerCase();
+  const badCats = [
+    'study aids', 'study guides', 'literary criticism',
+    'textbook', 'textbooks', 'education / teaching', 'education/teaching',
+    'language arts', 'foreign language', 'foreign language study',
+    'reference', 'juvenile fiction', 'juvenile nonfiction',
+    'history', 'philosophy', 'psychology', 'religion',
+    'antiques & collectibles', 'architecture', 'body, mind & spirit',
+    'computers', 'cooking', 'crafts & hobbies', 'design', 'gardening',
+    'health & fitness', 'house & home', 'law', 'mathematics',
+    'medical', 'music', 'nature', 'pets', 'photography',
+    'political science', 'science', 'social science', 'sports & recreation',
+    'technology & engineering', 'transportation', 'travel',
+    'collections', 'anthologies', 'proceedings', 'research',
+    'periodicals', 'encyclopedias', 'handbooks', 'manuals',
+    'games & activities', 'art', 'drama', 'poetry',
+    'true crime', 'humor', 'performing arts'
+  ];
+  for (const c of badCats) { if (cats.includes(c)) return false; }
+  return true;
+}
+
+// Check if a book is already saved, read, or swiped on
+function isAlreadyKnown(book) {
+  const key = bookKey(book);
+  if (seenKeys.has(key)) return true;
+  const tKey = titleKey(book);
+  if (seenKeys.has(tKey)) return true;
+  if (savedBooks.some(b => bookKey(b) === key || titleKey(b) === tKey)) return true;
+  if (readBooks.some(b => bookKey(b) === key || titleKey(b) === tKey)) return true;
+  return false;
+}
+
+// ─── Well-known audiobook narration data ───
+const NARRATION_DATA = {
+  "dune": { narrator: "Scott Brick, Orlagh Cassidy, full cast", rec: true, note: "Full cast production brings the world to life" },
+  "project hail mary": { narrator: "Ray Porter", rec: true, note: "Ray Porter's performance is widely considered one of the best in sci-fi audiobooks" },
+  "the martian": { narrator: "Wil Wheaton", rec: true, note: "Wil Wheaton perfectly captures Watney's humor and determination" },
+  "educated": { narrator: "Julia Whelan", rec: true, note: "Julia Whelan's narration adds emotional depth to this powerful memoir" },
+  "becoming": { narrator: "Michelle Obama", rec: true, note: "Read by the author herself, deeply personal and engaging" },
+  "born a crime": { narrator: "Trevor Noah", rec: true, note: "Trevor Noah narrates with accents and comedy — a must-listen" },
+  "atomic habits": { narrator: "James Clear", rec: true, note: "Author-narrated with clear delivery that matches the book's style" },
+  "the great gatsby": { narrator: "Jake Gyllenhaal", rec: true, note: "Jake Gyllenhaal brings Fitzgerald's prose to life beautifully" },
+  "1984": { narrator: "Stephen Fry", rec: true, note: "Stephen Fry's narration is chilling and authoritative" },
+  "brave new world": { narrator: "Michael York", rec: true, note: "Michael York's distinguished voice suits the dystopian tone" },
+  "fahrenheit 451": { narrator: "Tim Robbins", rec: true, note: "Tim Robbins delivers an intense, gripping performance" },
+  "to kill a mockingbird": { narrator: "Sissy Spacek", rec: true, note: "Sissy Spacek captures Scout's voice with warmth and innocence" },
+  "the kite runner": { narrator: "Khaled Hosseini", rec: true, note: "Author-narrated with authentic pronunciation and deep emotion" },
+  "circe": { narrator: "Perdita Weeks", rec: true, note: "Perdita Weeks' voice is mesmerizing and perfectly suited to the mythological tone" },
+  "the night circus": { narrator: "Jim Dale", rec: true, note: "Jim Dale creates an enchanting, atmospheric listening experience" },
+  "ender's game": { narrator: "Stefan Rudnicki, full cast", rec: true, note: "Full cast production with excellent performances throughout" },
+  "foundation": { narrator: "Scott Brick", rec: true, note: "Scott Brick handles Asimov's grand scope with gravitas" },
+  "neuromancer": { narrator: "Robertson Dean", rec: true, note: "Robertson Dean captures the gritty cyberpunk atmosphere well" },
+  "the left hand of darkness": { narrator: "George Guidall, Jonathan Davis", rec: true, note: "Dual narrators bring the two perspectives to life effectively" },
+  "hyperion": { narrator: "Multiple narrators", rec: true, note: "Each tale has its own narrator, matching the Canterbury Tales structure" },
+  "snow crash": { narrator: "Jonathan Davis", rec: true, note: "Jonathan Davis captures Stephenson's witty, fast-paced style" },
+  "the three-body problem": { narrator: "Luke Daniels", rec: true, note: "Luke Daniels handles the complex science and Chinese names well" },
+  "dark matter": { narrator: "Jon Lindstrom", rec: true, note: "Fast-paced narration that matches the thriller's intensity" },
+  "klara and the sun": { narrator: "Sura Siu", rec: true, note: "Sura Siu beautifully captures Klara's curious, observant voice" },
+  "piranesi": { narrator: "Chiwetel Ejiofor", rec: true, note: "Chiwetel Ejiofor's narration is otherworldly and captivating" },
+  "when breath becomes air": { narrator: "Cassandra Campbell, Abraham Verghese", rec: true, note: "Deeply moving narration that honors the author's story" },
+  "crying in h mart": { narrator: "Michelle Zauner", rec: true, note: "Author-narrated with raw emotion — the personal delivery makes it essential listening" },
+  "shoe dog": { narrator: "Norbert Leo Butz", rec: true, note: "Energetic narration perfect for Phil Knight's entrepreneurial story" },
+  "kitchen confidential": { narrator: "Anthony Bourdain", rec: true, note: "Bourdain's own voice is irreplaceable — raw, funny, and unforgettable" },
+  "mans search for meaning": { narrator: "Simon Vance", rec: true, note: "Simon Vance delivers Frankl's profound message with quiet dignity" },
+  "the subtle art": { narrator: "Roger Wayne", rec: true, note: "Roger Wayne's conversational delivery fits the irreverent tone" },
+  "thinking fast and slow": { narrator: "Patrick Egan", rec: false, note: "Solid narration, though the dense material can be challenging in audio format" },
+  "deep work": { narrator: "Jeff Bottoms", rec: true, note: "Clear, focused narration that mirrors the book's themes" },
+  "cant hurt me": { narrator: "David Goggins, Adam Skolnick", rec: true, note: "Goggins adds unscripted commentary between chapters — the definitive way to experience this book" },
+  "zero to one": { narrator: "Blake Masters", rec: true, note: "Clean narration of Thiel's contrarian startup philosophy" },
+  "the lean startup": { narrator: "Eric Ries", rec: true, note: "Author-narrated with genuine passion for the material" },
+  "never split the difference": { narrator: "Michael Kramer", rec: true, note: "Michael Kramer's authoritative delivery enhances the negotiation lessons" },
+  "the psychology of money": { narrator: "Chris Hill", rec: true, note: "Chris Hill's warm, conversational tone makes complex ideas accessible" },
+  "principles": { narrator: "Ray Dalio", rec: true, note: "Author-narrated — hearing Dalio explain his own principles adds authenticity" },
+  "good to great": { narrator: "Jim Collins", rec: true, note: "Author-narrated with engaging examples and analysis" },
+  "pride and prejudice": { narrator: "Rosamund Pike", rec: true, note: "Rosamund Pike's narration is witty and perfectly captures Austen's irony" },
+  "beloved": { narrator: "Toni Morrison", rec: true, note: "Toni Morrison reading her own masterwork — an essential listening experience" },
+  "life of pi": { narrator: "Jeff Woodman", rec: true, note: "Jeff Woodman brings Pi's incredible journey to vivid life" },
+  "the alchemist": { narrator: "Jeremy Irons", rec: true, note: "Jeremy Irons' voice gives the fable a profound, timeless quality" },
+  "where the crawdads sing": { narrator: "Cassandra Campbell", rec: true, note: "Cassandra Campbell beautifully captures the marshland setting and Kya's isolation" },
+  "a gentleman in moscow": { narrator: "Nicholas Guy Smith", rec: true, note: "Elegant narration that matches the novel's refined, witty tone" },
+  "the name of the wind": { narrator: "Nick Podehl", rec: true, note: "Nick Podehl's performance is legendary among fantasy audiobook fans" },
+  "all the light we cannot see": { narrator: "Zach Appelman", rec: true, note: "Atmospheric narration that captures the beauty of Doerr's prose" },
+  "pachinko": { narrator: "Allison Hiroto", rec: true, note: "Allison Hiroto brings warmth and gravitas to this multigenerational saga" },
+  "i am malala": { narrator: "Archie Panjabi", rec: true, note: "Archie Panjabi's narration adds cultural authenticity and warmth" },
+  "greenlights": { narrator: "Matthew McConaughey", rec: true, note: "McConaughey narrates with charm and charisma — feels like a private conversation" },
+  "the body keeps the score": { narrator: "Sean Pratt", rec: true, note: "Sean Pratt's measured delivery suits the clinical yet compassionate content" },
+  "grit": { narrator: "Angela Duckworth", rec: true, note: "Author-narrated with the passion and grit she writes about" },
+  "you are a badass": { narrator: "Jen Sincero", rec: true, note: "Author's energetic delivery amplifies the motivational content" },
+  "the power of now": { narrator: "Eckhart Tolle", rec: true, note: "Tolle's calm, meditative voice perfectly embodies the book's message" },
+  "measure what matters": { narrator: "John Doerr, full cast", rec: true, note: "Features guest appearances from tech leaders sharing their OKR stories" },
+  "lessons in chemistry": { narrator: "Miranda Raison, Pandora Sykes", rec: true, note: "Dual narration captures the wit and warmth of Elizabeth Zott" },
+  "tomorrow and tomorrow and tomorrow": { narrator: "Jennifer Kim, Julian Cihi", rec: true, note: "Dual narrators beautifully handle the decades-spanning friendship" },
+  "demon copperhead": { narrator: "Charlie Hall", rec: true, note: "Charlie Hall captures the Appalachian voice and raw emotion perfectly" },
+};
+
+function getNarrationInfo(book) {
+  const title = (book.title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  for (const [key, info] of Object.entries(NARRATION_DATA)) {
+    if (title.includes(key.toLowerCase())) return info;
+  }
+  return null;
+}
+
+// ─── Curated Books ───
+const CURATED = {
+  fiction: [
+    "the+great+gatsby", "to+kill+a+mockingbird", "1984+george+orwell",
+    "pride+and+prejudice", "the+catcher+in+the+rye", "beloved+toni+morrison",
+    "the+kite+runner", "life+of+pi", "the+alchemist+coelho",
+    "normal+people+sally+rooney", "where+the+crawdads+sing",
+    "the+night+circus", "circe+madeline+miller", "pachinko+min+jin+lee",
+    "the+goldfinch", "a+gentleman+in+moscow", "the+secret+history",
+    "all+the+light+we+cannot+see", "the+name+of+the+wind",
+    "anxious+people+backman", "lessons+in+chemistry", "demon+copperhead",
+    "tomorrow+and+tomorrow+and+tomorrow", "the+overstory"
+  ],
+  science_fiction: [
+    "dune+frank+herbert", "enders+game", "neuromancer+gibson",
+    "the+left+hand+of+darkness", "foundation+asimov", "hyperion+dan+simmons",
+    "snow+crash+stephenson", "the+martian+andy+weir", "brave+new+world",
+    "fahrenheit+451", "the+expanse+leviathan+wakes", "annihilation+vandermeer",
+    "project+hail+mary", "the+three+body+problem", "dark+matter+blake+crouch",
+    "kindred+octavia+butler", "children+of+time+tchaikovsky",
+    "the+long+way+to+a+small+angry+planet", "klara+and+the+sun",
+    "recursion+blake+crouch", "piranesi+susanna+clarke",
+    "exhalation+ted+chiang", "seveneves+stephenson", "red+mars+robinson"
+  ],
+  memoir: [
+    "educated+tara+westover", "becoming+michelle+obama",
+    "the+glass+castle+walls", "when+breath+becomes+air",
+    "born+a+crime+trevor+noah", "know+my+name+chanel+miller",
+    "crying+in+h+mart", "the+year+of+magical+thinking",
+    "wild+cheryl+strayed", "just+as+i+am+cicely+tyson",
+    "greenlights+matthew+mcconaughey", "i+am+malala",
+    "mans+search+for+meaning", "night+elie+wiesel",
+    "the+autobiography+of+malcolm+x", "long+walk+to+freedom+mandela",
+    "shoe+dog+phil+knight", "kitchen+confidential+bourdain",
+    "untamed+glennon+doyle", "maybe+you+should+talk+to+someone"
+  ],
+  "self-help": [
+    "atomic+habits", "the+subtle+art+of+not+giving",
+    "thinking+fast+and+slow", "the+power+of+now+tolle",
+    "how+to+win+friends+and+influence+people", "the+7+habits+of+highly+effective",
+    "mindset+carol+dweck", "you+are+a+badass", "the+four+agreements",
+    "deep+work+cal+newport", "the+body+keeps+the+score",
+    "daring+greatly+brene+brown", "grit+angela+duckworth",
+    "cant+hurt+me+goggins", "ikigai+garcia+miralles",
+    "the+mountain+is+you", "12+rules+for+life+peterson",
+    "emotional+intelligence+goleman", "the+gifts+of+imperfection",
+    "mans+search+for+meaning+frankl"
+  ],
+  business: [
+    "zero+to+one+peter+thiel", "the+lean+startup", "good+to+great+collins",
+    "the+hard+thing+about+hard+things", "start+with+why+sinek",
+    "the+innovators+dilemma", "thinking+in+bets+annie+duke",
+    "never+split+the+difference", "shoe+dog+knight",
+    "measure+what+matters", "the+ride+of+a+lifetime+iger",
+    "principles+ray+dalio", "the+psychology+of+money",
+    "build+tony+fadell", "trillion+dollar+coach",
+    "no+rules+rules+netflix", "the+infinite+game+sinek",
+    "rework+jason+fried", "competing+against+luck",
+    "blitzscaling+hoffman", "super+founders"
+  ],
+  lds: [
+    "the+work+and+the+glory+gerald+lund", "fire+of+the+covenant+gerald+lund",
+    "the+undaunted+gerald+lund", "saints+volume+church+history",
+    "rough+stone+rolling+bushman", "jesus+the+christ+talmage",
+    "the+miracle+of+forgiveness+kimball", "the+infinite+atonement+callister",
+    "believing+christ+stephen+robinson", "the+peace+giver+james+ferrell",
+    "the+continuous+atonement+brad+wilcox", "a+marvelous+work+and+a+wonder+legrand+richards",
+    "in+sacred+loneliness+compton", "spiritual+roots+of+human+relations+covey",
+    "the+article+of+faith+talmage", "drawing+heaven+into+your+marriage",
+    "covenant+hearts+william+dyer", "the+second+comforter+denver+snuffer",
+    "to+draw+closer+to+god+henry+eyring", "arms+of+his+love+conference"
+  ],
+  technology: [
+    "the+pragmatic+programmer", "clean+code+robert+martin",
+    "the+innovators+walter+isaacson", "steve+jobs+walter+isaacson",
+    "hackers+and+painters+paul+graham", "designing+data+intensive+applications",
+    "the+mythical+man+month+brooks", "code+complete+mcconnell",
+    "godel+escher+bach+hofstadter", "the+phoenix+project+devops",
+    "accelerate+forsgren+humble", "a+mind+at+play+claude+shannon",
+    "the+shallows+nicholas+carr", "algorithms+to+live+by+christian+griffiths",
+    "the+master+switch+tim+wu", "how+google+works+schmidt+rosenberg",
+    "the+big+switch+nicholas+carr", "coders+at+work+seibel",
+    "where+wizards+stay+up+late", "the+soul+of+a+new+machine+kidder"
+  ],
+  new_releases: [
+    "onyx+storm+rebecca+yarros+2025", "sunrise+on+the+reaping+suzanne+collins+2025",
+    "wind+and+truth+brandon+sanderson+2025", "the+familiar+leigh+bardugo+2025",
+    "counting+miracles+nicholas+sparks+2025", "the+women+kristin+hannah+2025",
+    "caledonian+road+andrew+oloughlin+2025", "we+solve+murders+richard+osman+2025",
+    "the+curse+of+pietro+houdini+derek+b+miller+2025",
+    "aftermath+rachel+cusk+2025", "blue+sisters+coco+mellors+2025",
+    "the+wedding+people+alison+espach+2025", "games+of+desire+colleen+hoover+2025",
+    "my+vampire+plus+one+jenna+guillaume+2025", "the+record+player+colleen+hoover+2025",
+    "eruption+michael+crichton+james+patterson+2025",
+    "death+of+the+black+widow+james+patterson+2025",
+    "the+grey+wolves+louise+penny+2025", "the+last+murder+at+the+end+of+the+world+stuart+turton+2025",
+    "all+the+colours+of+the+dark+chris+whitaker+2025",
+    "the+midnight+library+matt+haig+2025", "the+life+impossible+matt+haig+2025",
+    "someone+like+us+dinaw+mengestu+2025", "how+to+end+a+love+story+yulin+kuang+2025",
+    "the+paradise+problem+christina+lauren+2025",
+    "wild+eyes+elsie+silver+2025", "the+striker+ana+huang+2025",
+    "bride+ali+hazelwood+2025", "king+of+sloth+ana+huang+2025",
+    "just+for+the+summer+abby+jimenez+2025",
+    "if+only+i+had+told+her+laura+nowlin+2025",
+    "the+atlas+complex+olivie+blake+2025", "iron+flame+rebecca+yarros+2025",
+    "house+of+salt+and+sorrows+erin+a+craig+2025",
+    "assistant+to+the+villain+hannah+nicole+maehrer+2025"
+  ]
+};
+
+function getAllCurated() {
+  let all = [];
+  for (let cat of Object.keys(CURATED)) all = all.concat(CURATED[cat].map(q => ({ query: q, category: cat })));
+  return shuffleArray(all);
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// ─── Google Books API ───
+const GB_SEARCH = 'https://www.googleapis.com/books/v1/volumes';
+const GB_API_KEY = FIREBASE_CONFIG.apiKey;
+
+function normalizeGBook(vol) {
+  const vi = vol.volumeInfo || {};
+  const ai = vol.accessInfo || {};
+  const isbn13 = (vi.industryIdentifiers || []).find(id => id.type === 'ISBN_13');
+  const isbn10 = (vi.industryIdentifiers || []).find(id => id.type === 'ISBN_10');
+  const isbns = [];
+  if (isbn13) isbns.push(isbn13.identifier);
+  if (isbn10) isbns.push(isbn10.identifier);
+  const thumb = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || '';
+  // Covers with edge=curl have real embedded images; others are often placeholders
+  const hasRealCover = thumb.includes('edge=curl') || thumb.includes('img=1&zoom=1&edge');
+  return {
+    key: vol.id,
+    title: vi.title || '',
+    author_name: vi.authors || [],
+    first_publish_year: vi.publishedDate ? parseInt(vi.publishedDate) : null,
+    number_of_pages_median: vi.pageCount || null,
+    subject: (vi.categories || []),
+    ratings_average: vi.averageRating || null,
+    ratings_count: vi.ratingsCount || 0,
+    _coverUrl: thumb.replace('http://', 'https://'),
+    _hasRealCover: hasRealCover,
+    _publicDomain: ai.publicDomain === true,
+    _description: vi.description || '',
+    language: vi.language ? [vi.language] : [],
+    isbn: isbns
+  };
+}
+
+function queryMatchesTitle(query, book) {
+  const words = query.replace(/\+/g, ' ').toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  if (words.length === 0) return true;
+  const title = (book.title || '').toLowerCase();
+  const matched = words.filter(w => title.includes(w)).length;
+  return matched >= Math.max(1, Math.ceil(words.length * 0.4));
+}
+
+async function fetchBookByQuery(query, options = {}) {
+  try {
+    const q = query.replace(/\+/g, ' ');
+    const order = options.newRelease ? 'newest' : 'relevance';
+    const url = `${GB_SEARCH}?q=${encodeURIComponent(q)}&langRestrict=en&maxResults=20&startIndex=0&orderBy=${order}&printType=books&key=${GB_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.items) {
+      // Score candidates by popularity and rating, pick the best match
+      let best = null, bestScore = -1;
+      for (const item of data.items) {
+        const book = normalizeGBook(item);
+        if (!isOriginalBook(book) || !queryMatchesTitle(query, book) || isAlreadyKnown(book)) continue;
+        const rc = book.ratings_count || 0;
+        const ra = book.ratings_average || 0;
+        const score = (Math.log10(rc + 1) * 2) + (ra * 1.5);
+        if (score > bestScore) { best = book; bestScore = score; }
+      }
+      return best;
+    }
+  } catch (e) { console.error('Fetch error:', e); }
+  return null;
+}
+
+function isSearchableBook(book) {
+  // Lighter filter for explicit searches — keeps spam/summary filters but
+  // allows all real categories (juvenile fiction, history, etc.)
+  if (!book._coverUrl) return false;
+  if (book._publicDomain) return false;
+  const langs = book.language || [];
+  if (langs.length > 0 && !langs.includes('eng') && !langs.includes('en')) return false;
+  const title = book.title || '';
+  if (title) {
+    const letters = title.replace(/[^A-Za-z\u00C0-\u024F\u4E00-\u9FFF\u0400-\u04FF\u0600-\u06FF\u0590-\u05FF\u0900-\u097F]/g, '');
+    if (letters.length >= 4) {
+      const nonLatin = letters.replace(/[A-Za-z\u00C0-\u024F]/g, '').length;
+      if (nonLatin / letters.length > 0.3) return false;
+    }
+  }
+  for (const p of SUMMARY_PATTERNS) { if (p.test(title)) return false; }
+  const authors = (book.author_name || []).join(' ').toLowerCase();
+  const bad = ['sparknotes','cliffsnotes','supersummary','blinkist','getabstract',
+    'bright summaries','bookcaps','instaread','wikipedians','grin verlag','grin publishing',
+    'independently published','createspace'];
+  for (const b of bad) { if (authors.includes(b)) return false; }
+  const possessiveMatch = title.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)'s\b/);
+  if (possessiveMatch) {
+    const referencedName = possessiveMatch[1].toLowerCase();
+    if (!authors.includes(referencedName.split(' ').pop())) return false;
+  }
+  return true;
+}
+
+async function searchBooks(query) {
+  try {
+    const url = `${GB_SEARCH}?q=${encodeURIComponent(query)}&langRestrict=en&maxResults=40&orderBy=relevance&printType=books&key=${GB_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.items || [])
+      .map(normalizeGBook)
+      .filter(isSearchableBook);
+  } catch (e) { console.error('Search error:', e); return []; }
+}
+
+async function fetchDescription(bookKey) {
+  // Google Books includes descriptions inline, but for books loaded from localStorage
+  // that might not have _description, fetch it
+  if (!bookKey) return '';
+  try {
+    const res = await fetch(`${GB_SEARCH}/${bookKey}?key=${GB_API_KEY}`);
+    const data = await res.json();
+    return data.volumeInfo?.description || '';
+  } catch (e) { return ''; }
+}
+
+function getCoverUrl(book) {
+  if (!book._coverUrl) return '';
+  // Use the original Google Books thumbnail URL (zoom=1) for ALL sizes so
+  // list thumbnails and the detail modal show the same image (Google's
+  // zoom=2/3 are zoomed-in CROPS, not just larger versions).
+  // Append fife=w400 for higher resolution where Google supports it.
+  let url = book._coverUrl.replace('http://', 'https://');
+  if (!url.includes('fife=')) url += '&fife=w400';
+  return url;
+}
+
+function bookKey(book) { return book.key || `${book.title}-${(book.author_name||[])[0]||''}`; }
+function titleKey(book) { return `${(book.title||'').toLowerCase().replace(/[^a-z0-9]/g,'')}-${((book.author_name||[])[0]||'').toLowerCase().replace(/[^a-z0-9]/g,'')}`; }
+
+function categorizeBook(book) {
+  const s = (book.subject || []).map(s => s.toLowerCase()).join(' ');
+  const authors = (book.author_name || []).join(' ').toLowerCase();
+  if (s.includes('church of jesus christ') || s.includes('latter-day saint') || s.includes('mormon') || s.includes('lds') || s.includes('book of mormon') || authors.includes('talmage') || authors.includes('kimball') || authors.includes('gerald lund')) return 'lds';
+  if (s.includes('computer science') || s.includes('software') || s.includes('programming') || s.includes('technology') || s.includes('artificial intelligence') || s.includes('internet') || s.includes('computing')) return 'technology';
+  if (s.includes('science fiction') || s.includes('sci-fi') || s.includes('dystopia')) return 'science_fiction';
+  if (s.includes('memoir') || s.includes('autobiography') || s.includes('biography')) return 'memoir';
+  if (s.includes('self-help') || s.includes('personal development') || s.includes('psychology')) return 'self-help';
+  if (s.includes('business') || s.includes('economics') || s.includes('entrepreneurship') || s.includes('management')) return 'business';
+  if (s.includes('fiction') || s.includes('novel') || s.includes('literary')) return 'fiction';
+  return 'fiction';
+}
+
+// ─── Recommendation Engine ───
+function getRecommendationQueries() {
+  const highRated = readBooks.filter(b => b._rating >= 4);
+  const okRated = readBooks.filter(b => b._rating === 3);
+  if (highRated.length === 0 && okRated.length === 0) return [];
+  const queries = [];
+  const favAuthors = {}, favSubjects = {}, favGenres = {};
+
+  for (const book of highRated) {
+    const w = book._rating === 5 ? 3 : 1;
+    for (const a of (book.author_name || [])) favAuthors[a] = (favAuthors[a] || 0) + w;
+    for (const s of (book.subject || []).slice(0, 5)) {
+      const sl = s.toLowerCase();
+      if (sl.length > 3 && !['fiction','literature','novels'].includes(sl)) favSubjects[sl] = (favSubjects[sl] || 0) + w;
+    }
+    const cat = book._category || categorizeBook(book);
+    favGenres[cat] = (favGenres[cat] || 0) + w;
+  }
+
+  // Include 3-star books with lower weight to broaden the pool
+  for (const book of okRated.slice(0, 5)) {
+    for (const s of (book.subject || []).slice(0, 2)) {
+      const sl = s.toLowerCase();
+      if (sl.length > 3 && !['fiction','literature','novels'].includes(sl)) favSubjects[sl] = (favSubjects[sl] || 0) + 0.5;
+    }
+  }
+
+  // Author queries
+  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,5)) queries.push({ query: a, category: null });
+  // Extra author queries (e.g. "author novel") for variety
+  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,3)) queries.push({ query: `${a} novel`, category: null });
+  // Subject queries
+  for (const [s] of Object.entries(favSubjects).sort((a,b) => b[1]-a[1]).slice(0,10)) queries.push({ query: s, category: null });
+  // "Similar to [title]" queries for top-rated books
+  for (const book of shuffleArray(highRated).slice(0, 5)) {
+    queries.push({ query: `books similar to ${book.title}`, category: null });
+  }
+  // Curated queries from favorite genres
+  for (const [g] of Object.entries(favGenres).sort((a,b) => b[1]-a[1])) {
+    if (CURATED[g]) for (const q of shuffleArray(CURATED[g]).slice(0,5)) queries.push({ query: q, category: g });
+  }
+  return shuffleArray(queries);
+}
+
+async function loadForYouBooks(count = 5) {
+  if (isFetching) return;
+  isFetching = true;
+  const queries = getRecommendationQueries();
+  if (queries.length === 0) { isFetching = false; return; }
+  let successes = 0;
+  let qi = 0;
+  let rounds = 0;
+  const maxRounds = 3;
+  while (successes < count && qi < queries.length && rounds < maxRounds) {
+    rounds++;
+    const batchSize = Math.min(count - successes + 2, queries.length - qi);
+    const promises = [];
+    for (let i = 0; i < batchSize && qi < queries.length; i++) {
+      const item = queries[qi++];
+      promises.push(fetchBookByQuery(item.query).then(book => {
+        if (book && !isAlreadyKnown(book)) {
+          book._category = item.category || categorizeBook(book);
+          book._forYou = true;
+          return book;
+        }
+        return null;
+      }));
+    }
+    for (const book of await Promise.all(promises)) {
+      if (book) { currentBooks.push(book); successes++; }
+    }
+  }
+  isFetching = false;
+}
+
+// ─── Book Loading ───
+let bookQueue = [], queueIndex = 0;
+
+function initQueue() {
+  if (currentCategory === 'for-you') { bookQueue = []; queueIndex = 0; return; }
+  if (currentCategory === 'all') bookQueue = getAllCurated();
+  else bookQueue = shuffleArray(CURATED[currentCategory].map(q => ({ query: q, category: currentCategory })));
+  queueIndex = 0;
+}
+
+async function loadNextBooks(count = 3) {
+  if (currentCategory === 'for-you') return loadForYouBooks(count);
+  if (isFetching) return;
+  isFetching = true;
+  let successes = 0;
+  let rounds = 0;
+  const maxRounds = 3;
+  const isNewReleases = currentCategory === 'new_releases';
+  const cutoff = new Date().getFullYear() - 1;
+  while (successes < count && rounds < maxRounds) {
+    rounds++;
+    if (queueIndex >= bookQueue.length) initQueue();
+    const batchSize = Math.min(count - successes + 2, bookQueue.length - queueIndex);
+    if (batchSize <= 0) break;
+    const promises = [];
+    for (let i = 0; i < batchSize && queueIndex < bookQueue.length; i++) {
+      const item = bookQueue[queueIndex++];
+      const opts = isNewReleases ? { newRelease: true } : {};
+      promises.push(fetchBookByQuery(item.query, opts).then(book => {
+        if (book && !isAlreadyKnown(book)) {
+          if (isNewReleases && (!book.first_publish_year || book.first_publish_year < cutoff)) return null;
+          book._category = item.category || categorizeBook(book);
+          return book;
+        }
+        return null;
+      }));
+    }
+    for (const book of await Promise.all(promises)) {
+      if (book) { currentBooks.push(book); successes++; }
+    }
+  }
+  isFetching = false;
+}
+
+// ─── Card Rendering ───
+function renderCards() {
+  const stack = document.getElementById('cardStack');
+  const actions = document.getElementById('swipeActions');
+  const loading = document.getElementById('loadingState');
+  const empty = document.getElementById('emptyState');
+  loading.style.display = 'none';
+
+  if (currentBooks.length === 0) {
+    stack.style.display = 'none'; actions.style.display = 'none'; empty.style.display = 'flex';
+    if (currentCategory === 'for-you' && readBooks.length === 0)
+      empty.innerHTML = '<div class="emoji">📖</div><h3>Rate some books first</h3><p>Mark books as read and rate them to get personalized recommendations</p>';
+    else if (currentCategory === 'for-you')
+      empty.innerHTML = '<div class="emoji">✨</div><h3>No more recommendations</h3><p>Rate more books to discover new ones</p>';
+    else
+      empty.innerHTML = '<div class="emoji">📚</div><h3>No more books!</h3><p>Switch categories or search to find more</p>';
+    return;
+  }
+
+  empty.style.display = 'none'; stack.style.display = 'block'; actions.style.display = 'flex';
+  stack.innerHTML = '';
+
+  const toRender = currentBooks.slice(0, 2);
+  for (let i = toRender.length - 1; i >= 0; i--) {
+    const book = toRender[i];
+    const card = document.createElement('div');
+    card.className = `book-card ${i === 0 ? 'top' : 'behind'}`;
+    const coverUrl = getCoverUrl(book);
+    const subjects = (book.subject || []).slice(0, 3);
+    card.innerHTML = `
+      <img class="card-image" src="${coverUrl}" alt="${escHtml(book.title)}">
+      <div class="card-info">
+        <div class="card-title">${escHtml(book.title)}${book._forYou ? '<span class="for-you-badge">FOR YOU</span>' : ''}</div>
+        <div class="card-author">${escHtml((book.author_name || ['Unknown'])[0])}</div>
+        <div class="card-meta">
+          ${book.first_publish_year ? `<span class="card-tag">${book.first_publish_year}</span>` : ''}
+          ${book.ratings_average ? `<span class="card-tag">★ ${book.ratings_average.toFixed(1)}</span>` : ''}
+          ${subjects.map(s => `<span class="card-tag">${escHtml(s)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="swipe-overlay like">SAVE</div>
+      <div class="swipe-overlay nope">PASS</div>`;
+    // Skip books with broken cover images
+    const cardImg = card.querySelector('.card-image');
+    cardImg.onerror = () => { currentBooks.splice(currentBooks.indexOf(book), 1); renderCards(); };
+    if (i === 0) {
+      card.addEventListener('click', () => { if (!isDragging && Math.abs(touchDeltaX) < 5) showDetail(book); });
+      setupSwipeGestures(card);
+    }
+    stack.appendChild(card);
+  }
+  if (currentBooks.length < 5) loadNextBooks(5);
+}
+
+function setupSwipeGestures(card) {
+  let startX, deltaX = 0, startTime;
+  const threshold = 80, velThresh = 0.5;
+
+  function onStart(x) { startX = x; deltaX = 0; isDragging = false; startTime = Date.now(); card.classList.add('swiping'); }
+  function onMove(x) {
+    deltaX = x - startX; touchDeltaX = deltaX;
+    if (Math.abs(deltaX) > 10) isDragging = true;
+    card.style.transform = `translateX(${deltaX}px) rotate(${deltaX * 0.08}deg)`;
+    const p = Math.min(Math.abs(deltaX) / threshold, 1);
+    card.querySelector('.swipe-overlay.like').style.opacity = deltaX > 0 ? p : 0;
+    card.querySelector('.swipe-overlay.nope').style.opacity = deltaX < 0 ? p : 0;
+  }
+  function onEnd() {
+    card.classList.remove('swiping');
+    const vel = Math.abs(deltaX) / (Date.now() - startTime);
+    if (Math.abs(deltaX) > threshold || vel > velThresh) animateOut(card, deltaX > 0 ? 'right' : 'left');
+    else {
+      card.style.transform = '';
+      card.querySelector('.swipe-overlay.like').style.opacity = 0;
+      card.querySelector('.swipe-overlay.nope').style.opacity = 0;
+    }
+    touchDeltaX = 0;
+  }
+
+  card.addEventListener('touchstart', e => onStart(e.touches[0].clientX), { passive: true });
+  card.addEventListener('touchmove', e => onMove(e.touches[0].clientX), { passive: true });
+  card.addEventListener('touchend', onEnd);
+  let md = false;
+  card.addEventListener('mousedown', e => { md = true; onStart(e.clientX); });
+  document.addEventListener('mousemove', e => { if (md) onMove(e.clientX); });
+  document.addEventListener('mouseup', () => { if (md) { md = false; onEnd(); } });
+}
+
+function animateOut(card, dir) {
+  const x = dir === 'right' ? 500 : -500;
+  card.classList.add('animate-out');
+  card.style.transform = `translateX(${x}px) rotate(${x * 0.05}deg)`;
+  setTimeout(() => processSwipe(dir), 300);
+}
+
+function processSwipe(dir) {
+  if (!currentBooks.length) return;
+  const book = currentBooks.shift();
+  const key = bookKey(book);
+  seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
+  if (dir === 'right') {
+    if (!savedBooks.some(b => bookKey(b) === key)) { savedBooks.unshift({ ...book, savedAt: Date.now() }); saveSavedBooks(); }
+    stats.saved++; showToast(`Saved "${book.title}"`);
+  } else { stats.passed++; showToast(`Passed on "${book.title}"`); }
+  stats.swiped++;
+  const cat = book._category || categorizeBook(book);
+  stats.genres[cat] = (stats.genres[cat] || 0) + 1;
+  saveStats(); swipeHistory.push({ book, direction: dir }); renderCards();
+}
+
+function swipeCard(dir) { const c = document.querySelector('.book-card.top'); if (c) animateOut(c, dir); }
+
+function undoSwipe() {
+  if (!swipeHistory.length) { showToast('Nothing to undo'); return; }
+  const last = swipeHistory.pop();
+  const key = bookKey(last.book);
+  seenKeys.delete(key); seenKeys.delete(titleKey(last.book)); saveSeenKeys();
+  if (last.direction === 'right') { savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks(); stats.saved--; }
+  else stats.passed--;
+  stats.swiped--;
+  const cat = last.book._category || categorizeBook(last.book);
+  stats.genres[cat] = Math.max(0, (stats.genres[cat] || 0) - 1);
+  saveStats(); currentBooks.unshift(last.book); renderCards(); showToast('Undo! Book restored');
+}
+
+// ─── Detail Modal ───
+async function showDetail(book) {
+  if (!book) return;
+  const modal = document.getElementById('detailModal');
+  document.getElementById('modalCover').src = getCoverUrl(book);
+  document.getElementById('modalTitle').textContent = book.title;
+  document.getElementById('modalAuthor').textContent = (book.author_name || ['Unknown Author']).join(', ');
+  document.getElementById('modalPages').textContent = book.number_of_pages_median || '—';
+  document.getElementById('modalYear').textContent = book.first_publish_year || '—';
+  document.getElementById('modalRating').textContent = book.ratings_average ? `★ ${book.ratings_average.toFixed(1)}` : '—';
+  document.getElementById('modalGenre').textContent = (book._category || categorizeBook(book)).replace('_', ' ');
+  document.getElementById('modalSubjects').innerHTML = (book.subject || []).slice(0, 8).map(s => `<span class="subject-tag">${escHtml(s)}</span>`).join('');
+
+  const descEl = document.getElementById('modalDesc');
+  descEl.textContent = 'Loading description...';
+
+  // Narration info
+  const narr = getNarrationInfo(book);
+  const narrSection = document.getElementById('narrationSection');
+  if (narr) {
+    narrSection.style.display = 'flex';
+    document.getElementById('narrationText').textContent = `${narr.narrator} — ${narr.note}`;
+    document.getElementById('narrationBadge').innerHTML = narr.rec === true
+      ? '<span class="narration-rec recommended">RECOMMENDED</span>'
+      : '<span class="narration-rec mixed">MIXED REVIEWS</span>';
+  } else {
+    narrSection.style.display = 'none';
+  }
+
+  // Mark as Read / Edit Read Details / Currently Reading button state
+  const readEntry = readBooks.find(r => bookKey(r) === bookKey(book));
+  const isRead = !!readEntry;
+  const isCurrentlyReading = isRead && readEntry._currentlyReading;
+  const markBtn = document.querySelector('.modal-btn.mark-read');
+  const readingBtn = document.querySelector('.modal-btn.currently-reading');
+  if (isCurrentlyReading) {
+    markBtn.textContent = 'Finish Book';
+    markBtn.disabled = false; markBtn.style.opacity = '1';
+    markBtn.onclick = () => openRateModal(bookKey(book));
+    readingBtn.textContent = 'Reading ✓';
+    readingBtn.disabled = true; readingBtn.style.opacity = '0.5';
+  } else if (isRead) {
+    markBtn.textContent = 'Edit Read Details';
+    markBtn.disabled = false; markBtn.style.opacity = '1';
+    markBtn.onclick = () => openRateModal(bookKey(book));
+    readingBtn.style.display = 'none';
+  } else {
+    markBtn.textContent = 'Mark as Read';
+    markBtn.disabled = false; markBtn.style.opacity = '1';
+    markBtn.onclick = () => openRateModal();
+    readingBtn.textContent = 'Reading';
+    readingBtn.disabled = false; readingBtn.style.opacity = '1';
+    readingBtn.style.display = '';
+  }
+
+  modal.classList.add('open');
+  modal._book = book;
+
+  if (book._description) {
+    descEl.innerHTML = book._description;
+  } else if (book.key) {
+    const desc = await fetchDescription(book.key);
+    if (desc) { book._description = desc; descEl.innerHTML = desc; }
+    else descEl.textContent = 'No description available for this book.';
+  } else descEl.textContent = 'No description available for this book.';
+}
+
+function closeModal(e) { if (!e || e.target === document.getElementById('detailModal')) document.getElementById('detailModal').classList.remove('open'); }
+
+// Swipe-down to dismiss detail modal
+(function() {
+  let startY = 0, currentY = 0, dragging = false;
+  document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('detailModal');
+    const modal = overlay.querySelector('.modal');
+    modal.addEventListener('touchstart', e => {
+      if (modal.scrollTop > 5) return;
+      startY = e.touches[0].clientY;
+      currentY = startY;
+      dragging = true;
+      modal.style.transition = 'none';
+    }, { passive: true });
+    modal.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      currentY = e.touches[0].clientY;
+      const dy = Math.max(0, currentY - startY);
+      if (dy > 0) modal.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    modal.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      const dy = currentY - startY;
+      modal.style.transition = 'transform 0.25s ease';
+      if (dy > 100) {
+        modal.style.transform = 'translateY(100%)';
+        setTimeout(() => { overlay.classList.remove('open'); modal.style.transform = ''; }, 250);
+      } else {
+        modal.style.transform = '';
+      }
+    });
+  });
+})();
+
+function modalSwipe(dir) {
+  const modal = document.getElementById('detailModal');
+  modal.classList.remove('open');
+  const book = modal._book;
+  if (book && currentBooks.length > 0 && bookKey(currentBooks[0]) === bookKey(book)) swipeCard(dir);
+  else if (book && dir === 'right') {
+    if (!savedBooks.find(b => bookKey(b) === bookKey(book))) {
+      savedBooks.unshift({ ...book, savedAt: Date.now() }); saveSavedBooks();
+      stats.saved++; stats.swiped++;
+      const cat = book._category || categorizeBook(book);
+      stats.genres[cat] = (stats.genres[cat] || 0) + 1;
+      saveStats(); showToast(`Saved "${book.title}"`);
+    }
+  }
+}
+
+// ─── Rate / Mark as Read ───
+function openRateModal(editKey = null) {
+  const book = editKey
+    ? readBooks.find(r => bookKey(r) === editKey)
+    : document.getElementById('detailModal')._book;
+  if (!book) return;
+  editingBookKey = editKey;
+  const isFinishing = editKey && book._currentlyReading;
+  document.getElementById('rateModalTitle').textContent =
+    isFinishing ? 'Finish Book' : editKey ? 'Edit Read Details' : 'Rate this book';
+  document.getElementById('rateModalSubtitle').textContent = book.title;
+  pendingRating = editKey ? (book._rating || 0) : 0;
+  pendingFormat = editKey ? (book._format || '') : '';
+  updateRateStars(pendingRating);
+  document.querySelectorAll('.format-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.fmt === pendingFormat));
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rateDateStartedInput').value =
+    editKey ? (book._dateStarted || '') : today;
+  document.getElementById('rateDateFinishedInput').value =
+    isFinishing ? today : editKey ? (book._dateFinished || book._dateRead || today) : today;
+  document.getElementById('rateModal').classList.add('open');
+}
+
+function closeRateModal(e) { if (!e || e.target === document.getElementById('rateModal')) document.getElementById('rateModal').classList.remove('open'); }
+
+function markCurrentlyReading() {
+  const book = document.getElementById('detailModal')._book;
+  if (!book) return;
+  const key = bookKey(book);
+  if (readBooks.some(r => bookKey(r) === key)) { showToast('Already in your read list'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  readBooks.unshift({
+    ...book,
+    _rating: 0,
+    _readAt: Date.now(),
+    _dateStarted: today,
+    _dateFinished: '',
+    _dateRead: '',
+    _format: '',
+    _currentlyReading: true,
+    _category: book._category || categorizeBook(book)
+  });
+  saveReadBooks();
+  // Also remove from saved/library if present
+  savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks();
+  seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
+  closeModal();
+  showToast(`Started reading "${book.title}"`);
+}
+
+function setRating(n) { pendingRating = n; updateRateStars(n); }
+
+function updateRateStars(n) { document.querySelectorAll('#rateStars .star').forEach((s, i) => s.classList.toggle('filled', i < n)); }
+
+function selectFormat(fmt) {
+  pendingFormat = fmt;
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt === fmt));
+}
+
+function confirmMarkRead() {
+  if (pendingRating === 0) { showToast('Please select a rating'); return; }
+  const dateStarted = document.getElementById('rateDateStartedInput').value || '';
+  const dateFinished = document.getElementById('rateDateFinishedInput').value
+    || new Date().toISOString().split('T')[0];
+
+  if (editingBookKey) {
+    // Update existing read book
+    const rb = readBooks.find(r => bookKey(r) === editingBookKey);
+    if (rb) {
+      const wasReading = rb._currentlyReading;
+      rb._rating = pendingRating;
+      rb._format = pendingFormat || rb._format || 'physical';
+      rb._dateStarted = dateStarted;
+      rb._dateFinished = dateFinished;
+      rb._dateRead = dateFinished; // keep legacy field in sync
+      rb._currentlyReading = false;
+      saveReadBooks();
+      renderReadList();
+      showToast(wasReading ? `Finished "${rb.title}"` : `Updated "${rb.title}"`);
+    }
+    editingBookKey = null;
+    closeRateModal(); closeModal();
+    return;
+  }
+
+  // Marking a brand-new read book
+  const book = document.getElementById('detailModal')._book;
+  if (!book) return;
+  const key = bookKey(book);
+  if (!readBooks.some(r => bookKey(r) === key)) {
+    readBooks.unshift({
+      ...book,
+      _rating: pendingRating,
+      _readAt: Date.now(),
+      _dateStarted: dateStarted,
+      _dateFinished: dateFinished,
+      _dateRead: dateFinished, // legacy alias
+      _format: pendingFormat || 'physical',
+      _category: book._category || categorizeBook(book)
+    });
+    saveReadBooks();
+    stats.read = (stats.read || 0) + 1;
+    saveStats();
+  }
+  savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks();
+  seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
+  closeRateModal(); closeModal();
+  showToast(`Rated "${book.title}" ${starsStr(pendingRating)}`);
+}
+
+function starsStr(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+
+// ─── Library ───
+function renderLibrary() {
+  const grid = document.getElementById('bookGrid');
+  const emptyEl = document.getElementById('libraryEmpty');
+  const countEl = document.getElementById('libraryCount');
+  let filtered = savedBooks;
+  if (currentShelf !== 'all') filtered = savedBooks.filter(b => (b._category || categorizeBook(b)) === currentShelf);
+  countEl.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
+  if (!filtered.length) { grid.innerHTML = ''; emptyEl.style.display = 'flex'; return; }
+  emptyEl.style.display = 'none';
+  grid.innerHTML = filtered.map(book => {
+    const idx = savedBooks.indexOf(book);
+    const key = bookKey(book);
+    const selected = librarySelected.has(key);
+    if (librarySelectMode) {
+      return `<div class="grid-book select-mode${selected ? ' selected' : ''}" onclick="toggleLibraryItemSelect(${idx})">
+        <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="this.outerHTML='<div class=grid-book-placeholder>${escHtml(book.title)}</div>'">
+        <div class="grid-book-checkbox">${selected ? '✓' : ''}</div>
+      </div>`;
+    }
+    return `<div class="grid-book" onclick="showDetail(savedBooks[${idx}])">
+      <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="this.outerHTML='<div class=grid-book-placeholder>${escHtml(book.title)}</div>'">
+      <button class="remove-btn" onclick="event.stopPropagation();removeFromLibrary(${idx})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleLibrarySelect() {
+  librarySelectMode = !librarySelectMode;
+  librarySelected.clear();
+  const btn = document.getElementById('librarySelectBtn');
+  const bar = document.getElementById('librarySelectBar');
+  if (librarySelectMode) {
+    btn.textContent = 'Cancel';
+    btn.classList.add('cancel');
+    bar.style.display = 'flex';
+    document.getElementById('librarySelectedCount').textContent = '0 selected';
+  } else {
+    btn.textContent = 'Select';
+    btn.classList.remove('cancel');
+    bar.style.display = 'none';
+  }
+  renderLibrary();
+}
+
+function toggleLibraryItemSelect(idx) {
+  const book = savedBooks[idx];
+  if (!book) return;
+  const key = bookKey(book);
+  if (librarySelected.has(key)) librarySelected.delete(key);
+  else librarySelected.add(key);
+  document.getElementById('librarySelectedCount').textContent =
+    `${librarySelected.size} selected`;
+  renderLibrary();
+}
+
+function confirmLibraryMassDelete() {
+  if (librarySelected.size === 0) { showToast('Select books to delete'); return; }
+  if (!confirm(`Remove ${librarySelected.size} book${librarySelected.size !== 1 ? 's' : ''} from your library?`)) return;
+  const removedCount = librarySelected.size;
+  savedBooks = savedBooks.filter(b => !librarySelected.has(bookKey(b)));
+  saveSavedBooks();
+  stats.saved = Math.max(0, savedBooks.length);
+  saveStats();
+  toggleLibrarySelect(); // exits mode and re-renders
+  showToast(`Removed ${removedCount} book${removedCount !== 1 ? 's' : ''}`);
+}
+
+function removeFromLibrary(i) {
+  const book = savedBooks[i]; savedBooks.splice(i, 1); saveSavedBooks();
+  stats.saved = Math.max(0, stats.saved - 1); saveStats(); renderLibrary();
+  showToast(`Removed "${book.title}"`);
+}
+
+function selectShelf(shelf) {
+  currentShelf = shelf;
+  const sel = document.getElementById('libraryGenreSelect');
+  if (sel) sel.value = shelf;
+  renderLibrary();
+}
+
+// ─── Read List ───
+function renderReadList() {
+  const listEl = document.getElementById('readList');
+  const emptyEl = document.getElementById('readEmpty');
+  const countEl = document.getElementById('readCount');
+
+  let filtered = readBooks;
+  // Rating filter
+  if (currentReadRating === 'reading') {
+    filtered = filtered.filter(b => b._currentlyReading);
+  } else if (currentReadRating !== 'all') {
+    if (currentReadRating === 'low') filtered = filtered.filter(b => !b._currentlyReading && b._rating <= 2);
+    else filtered = filtered.filter(b => !b._currentlyReading && b._rating === parseInt(currentReadRating));
+  }
+  // Genre filter
+  if (currentReadGenre !== 'all') {
+    filtered = filtered.filter(b => (b._category || categorizeBook(b)) === currentReadGenre);
+  }
+
+  countEl.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
+  if (!filtered.length) { listEl.innerHTML = ''; emptyEl.style.display = 'flex'; return; }
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = filtered.map(book => {
+    const idx = readBooks.indexOf(book);
+    const isReading = book._currentlyReading;
+    const fmt = book._format || 'physical';
+    const fmtIcon = fmt === 'audiobook' ? '🎧' : fmt === 'ebook' ? '📱' : '📕';
+    const fmtLabel = fmt.charAt(0).toUpperCase() + fmt.slice(1);
+    const dispDate = isReading ? book._dateStarted : (book._dateFinished || book._dateRead);
+    const dateStr = dispDate ? new Date(dispDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+    const starsOrBadge = isReading
+      ? '<div class="reading-badge"><span class="pulse-dot"></span> Currently Reading</div>'
+      : `<div class="read-item-stars">${starsStr(book._rating)}</div>`;
+    return `<div class="read-item" onclick="showDetail(readBooks[${idx}])">
+      <img class="read-item-img" src="${getCoverUrl(book)}" alt="">
+      <div class="read-item-info">
+        <div class="read-item-title">${escHtml(book.title)}</div>
+        <div class="read-item-author">${escHtml((book.author_name || ['Unknown'])[0])}</div>
+        ${starsOrBadge}
+        <div class="read-item-meta">
+          ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
+          ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
+        </div>
+      </div>
+      <div class="read-item-actions">
+        <button class="read-remove-btn" onclick="event.stopPropagation();removeFromRead(${idx})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeFromRead(i) {
+  const book = readBooks[i]; readBooks.splice(i, 1); saveReadBooks();
+  stats.read = Math.max(0, (stats.read || 0) - 1); saveStats(); renderReadList();
+  showToast(`Removed "${book.title}" from read list`);
+}
+
+function selectReadRating(val) {
+  currentReadRating = val;
+  document.getElementById('readRatingSelect').value = val;
+  renderReadList();
+}
+
+function selectReadGenre(val) {
+  currentReadGenre = val;
+  document.getElementById('readGenreSelect').value = val;
+  renderReadList();
+}
+
+// ─── Search ───
+async function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  document.getElementById('searchClear').classList.add('visible');
+  const el = document.getElementById('searchResults');
+  el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Searching...</span></div>';
+  const books = await searchBooks(query);
+  if (!books.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🔍</div><h3>No results found</h3><p>Try a different search</p></div>'; return; }
+  window.searchResultBooks = books.map(b => ({ ...b, _category: categorizeBook(b) }));
+  el.innerHTML = books.map((book, i) => {
+    const readEntry = readBooks.find(b => bookKey(b) === bookKey(book));
+    const isRead = !!readEntry;
+    const isReading = isRead && readEntry._currentlyReading;
+    const isSaved = savedBooks.some(b => bookKey(b) === bookKey(book));
+    let status = '';
+    if (isReading) status = '<span style="color:var(--green);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Reading 📖</span>';
+    else if (isRead) status = '<span style="color:var(--blue);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Read ✓</span>';
+    else if (isSaved) status = '<span style="color:var(--green);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Saved ✓</span>';
+    else status = `<button class="search-result-add" onclick="event.stopPropagation();addFromSearch(${i})">+</button>`;
+    return `<div class="search-result-item" onclick="showDetail(searchResultBooks[${i}])">
+      <img class="search-result-img" src="${getCoverUrl(book)}" alt="">
+      <div class="search-result-info">
+        <div class="search-result-title">${escHtml(book.title)}</div>
+        <div class="search-result-author">${escHtml((book.author_name || ['Unknown'])[0])}</div>
+        ${book.first_publish_year ? `<div class="search-result-year">${book.first_publish_year}</div>` : ''}
+      </div>
+      ${status}
+    </div>`;
+  }).join('');
+}
+
+function addFromSearch(i) {
+  const book = window.searchResultBooks[i];
+  if (!book) return;
+  if (savedBooks.some(b => bookKey(b) === bookKey(book))) { showToast('Already in your library'); return; }
+  book._category = categorizeBook(book);
+  savedBooks.unshift({ ...book, savedAt: Date.now() }); saveSavedBooks();
+  stats.saved++; stats.swiped++;
+  stats.genres[book._category] = (stats.genres[book._category] || 0) + 1;
+  saveStats(); showToast(`Saved "${book.title}"`); doSearch();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchResults').innerHTML = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  document.getElementById('searchInput').focus();
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+// ─── Stats ───
+function renderStats() {
+  document.getElementById('statSwiped').textContent = stats.swiped;
+  document.getElementById('statSaved').textContent = stats.saved;
+  document.getElementById('statPassed').textContent = stats.passed;
+  document.getElementById('statRead').textContent = stats.read || 0;
+  document.getElementById('statRate').textContent = stats.swiped > 0 ? Math.round((stats.saved / stats.swiped) * 100) + '%' : '0%';
+  if (readBooks.length > 0) {
+    const avg = readBooks.reduce((s, b) => s + (b._rating || 0), 0) / readBooks.length;
+    document.getElementById('statAvgRating').textContent = avg.toFixed(1) + ' ★';
+  } else document.getElementById('statAvgRating').textContent = '—';
+
+  // Yearly goal & pages
+  const year = new Date().getFullYear();
+  document.getElementById('yearGoalTitle').textContent = `${year} Reading Goal`;
+  // Only count books with an explicit _dateFinished in the current year.
+  // Ignore _dateRead — it was auto-populated during imports and doesn't
+  // reliably reflect when the book was actually finished.
+  const booksThisYear = readBooks.filter(b => {
+    const d = b._dateFinished || '';
+    return d.startsWith(String(year));
+  });
+  const pagesThisYear = booksThisYear.reduce((s, b) => s + (b.number_of_pages_median || 0), 0);
+  document.getElementById('yearBooksRead').textContent = booksThisYear.length;
+  document.getElementById('yearGoal').textContent = stats.yearlyGoal || '—';
+  document.getElementById('yearPagesRead').textContent = pagesThisYear.toLocaleString();
+  const pct = stats.yearlyGoal > 0
+    ? Math.min(100, Math.round((booksThisYear.length / stats.yearlyGoal) * 100))
+    : 0;
+  document.getElementById('yearGoalFill').style.width = pct + '%';
+
+  const genreNames = { fiction: 'Fiction', science_fiction: 'Sci-Fi', memoir: 'Memoirs', 'self-help': 'Self-Help', business: 'Business' };
+  const maxVal = Math.max(1, ...Object.values(stats.genres));
+  document.getElementById('genreBars').innerHTML = Object.keys(genreNames).map(key => {
+    const val = stats.genres[key] || 0;
+    return `<div class="genre-bar-item"><div class="genre-bar-label"><span>${genreNames[key]}</span><span>${val}</span></div><div class="genre-bar"><div class="genre-bar-fill" style="width:${(val/maxVal)*100}%"></div></div></div>`;
+  }).join('');
+}
+
+function openGoalEditor() {
+  const row = document.getElementById('yearGoalEditRow');
+  document.getElementById('yearGoalInput').value = stats.yearlyGoal || '';
+  row.style.display = 'flex';
+  document.getElementById('yearGoalInput').focus();
+}
+
+function saveYearlyGoal() {
+  const v = parseInt(document.getElementById('yearGoalInput').value, 10);
+  if (!isNaN(v) && v >= 0) {
+    stats.yearlyGoal = v;
+    saveStats();
+  }
+  document.getElementById('yearGoalEditRow').style.display = 'none';
+  renderStats();
+}
+
+// ─── Category Selection ───
+function selectCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
+  currentBooks = []; initQueue();
+  document.getElementById('loadingState').style.display = 'flex';
+  document.getElementById('cardStack').style.display = 'none';
+  document.getElementById('swipeActions').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+  if (cat === 'for-you' && !readBooks.length) {
+    document.getElementById('loadingState').style.display = 'none';
+    const e = document.getElementById('emptyState');
+    e.style.display = 'flex';
+    e.innerHTML = '<div class="emoji">📖</div><h3>Rate some books first</h3><p>Mark books as read and rate them to get personalized recommendations</p>';
+    return;
+  }
+  loadNextBooks(5).then(() => renderCards());
+}
+
+// ─── Navigation ───
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${tab}`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('categoryPills').style.display = tab === 'discover' ? 'flex' : 'none';
+  if (tab === 'library') renderLibrary();
+  if (tab === 'read') renderReadList();
+  if (tab === 'stats') renderStats();
+}
+
+// ─── Refresh books with Google Books data ───
+let _refreshing = false;
+async function refreshBooksWithGoogleData() {
+  if (_refreshing) return;
+  // Find books needing update (missing _coverUrl or _description)
+  const needsUpdate = [...readBooks, ...savedBooks].filter(b => !b._coverUrl || !b._description);
+  if (needsUpdate.length === 0) return;
+  _refreshing = true;
+  showToast(`Updating ${needsUpdate.length} books...`);
+  let updated = 0;
+  for (const book of needsUpdate) {
+    try {
+      const q = `${book.title} ${(book.author_name || [])[0] || ''}`.trim();
+      const url = `${GB_SEARCH}?q=${encodeURIComponent(q)}&langRestrict=en&maxResults=3&printType=books&key=${GB_API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.items) {
+        for (const item of data.items) {
+          const gb = normalizeGBook(item);
+          const titleMatch = gb.title.toLowerCase().includes(book.title.toLowerCase().split(':')[0].trim()) ||
+                             book.title.toLowerCase().includes(gb.title.toLowerCase().split(':')[0].trim());
+          if (titleMatch) {
+            book.key = gb.key;
+            if (gb._coverUrl) book._coverUrl = gb._coverUrl;
+            if (gb._description) book._description = gb._description;
+            if (gb.ratings_average) book.ratings_average = gb.ratings_average;
+            if (gb.ratings_count) book.ratings_count = gb.ratings_count;
+            if (gb.number_of_pages_median) book.number_of_pages_median = gb.number_of_pages_median;
+            if (gb.subject && gb.subject.length) book.subject = gb.subject;
+            if (gb.first_publish_year) book.first_publish_year = gb.first_publish_year;
+            if (gb.isbn && gb.isbn.length) book.isbn = gb.isbn;
+            updated++;
+            break;
+          }
+        }
+      }
+      // Rate limit: small delay between requests
+      await new Promise(r => setTimeout(r, 200));
+    } catch (e) { console.warn('Refresh failed for:', book.title, e); }
+  }
+  if (updated > 0) {
+    saveReadBooks(); saveSavedBooks();
+    renderReadList(); renderLibrary();
+    showToast(`Updated ${updated} books with new data`);
+  } else {
+    showToast('Books are up to date');
+  }
+  _refreshing = false;
+}
+
+// ─── Persistence ───
+function saveSavedBooks() { localStorage.setItem(profileKey('saved'), JSON.stringify(savedBooks)); scheduleFirestoreSave(); }
+function saveReadBooks() { localStorage.setItem(profileKey('read'), JSON.stringify(readBooks)); scheduleFirestoreSave(); }
+function saveStats() { localStorage.setItem(profileKey('stats'), JSON.stringify(stats)); scheduleFirestoreSave(); }
+function saveSeenKeys() { localStorage.setItem(profileKey('seen'), JSON.stringify([...seenKeys])); }
+
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function escHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Profile UI ───
+function updateProfileAvatar() {
+  const btn = document.getElementById('profileBtn');
+  if (!btn) return;
+  if (currentUser) {
+    const name = currentUser.displayName || currentUser.email || 'U';
+    const photoSrc = _customPhotoURL || currentUser.photoURL;
+    if (photoSrc) {
+      btn.style.background = 'none';
+      btn.innerHTML = `<img src="${escHtml(photoSrc)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+      btn.title = name;
+    } else {
+      btn.style.background = 'var(--accent-solid)';
+      btn.textContent = name.charAt(0).toUpperCase();
+      btn.title = name;
+    }
+  } else {
+    const p = profiles.find(p => p.id === currentProfileId) || profiles[0];
+    if (!p) return;
+    btn.innerHTML = '';
+    btn.style.background = p.color;
+    btn.textContent = p.name.charAt(0).toUpperCase();
+    btn.title = p.name;
+  }
+}
+
+function renderProfileList() {
+  const el = document.getElementById('profileList');
+  if (!el) return;
+  const addBtn = document.getElementById('profileAddBtn');
+  const signOutBtn = document.getElementById('profileSignOutBtn');
+
+  if (currentUser) {
+    const name = currentUser.displayName || currentUser.email || 'User';
+    const photoSrc = _customPhotoURL || currentUser.photoURL;
+    const initials = name.charAt(0).toUpperCase();
+    el.innerHTML = `
+      <div class="profile-item active" style="cursor:default">
+        <div class="profile-avatar" style="${photoSrc ? 'background:none;overflow:hidden;padding:0' : 'background:var(--accent-solid)'}">
+          ${photoSrc ? `<img src="${escHtml(photoSrc)}" style="width:100%;height:100%;object-fit:cover">` : initials}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="profile-name">${escHtml(name)}</div>
+          ${currentUser.email ? `<div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(currentUser.email)}</div>` : ''}
+        </div>
+        <div class="profile-active-dot"></div>
+      </div>
+      <button class="profile-action-btn" onclick="triggerPhotoUpload()">📷 Change Photo</button>
+      <button class="profile-action-btn" onclick="closeProfileModal();openImportModal()">📚 Import from Goodreads</button>`;
+    if (addBtn) addBtn.style.display = 'none';
+    document.getElementById('profileNewRow').classList.remove('visible');
+    if (signOutBtn) signOutBtn.style.display = '';
+  } else {
+    el.innerHTML = profiles.map(p => `
+      <div class="profile-item${p.id === currentProfileId ? ' active' : ''}" onclick="switchProfile('${p.id}')">
+        <div class="profile-avatar" style="background:${p.color}">${p.name.charAt(0).toUpperCase()}</div>
+        <div class="profile-name">${escHtml(p.name)}</div>
+        ${p.id === currentProfileId ? '<div class="profile-active-dot"></div>' : ''}
+        ${profiles.length > 1 ? `<button class="profile-del-btn" onclick="event.stopPropagation();deleteProfile('${p.id}')">✕</button>` : ''}
+      </div>`).join('');
+    if (addBtn) addBtn.style.display = '';
+    if (signOutBtn) signOutBtn.style.display = 'none';
+    // Guest/local mode: append import button after profile list
+    el.innerHTML += `<button class="profile-action-btn" style="margin-top:12px" onclick="closeProfileModal();openImportModal()">📚 Import from Goodreads</button>`;
+  }
+}
+
+function showProfileModal() {
+  renderProfileList();
+  if (!currentUser) {
+    document.getElementById('profileNewRow').classList.remove('visible');
+    document.getElementById('profileAddBtn').style.display = '';
+  }
+  document.getElementById('profileOverlay').classList.add('open');
+}
+
+function closeProfileModal(e) {
+  if (e && e.target !== document.getElementById('profileOverlay')) return;
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+
+function toggleNewProfileForm() {
+  const row = document.getElementById('profileNewRow');
+  const btn = document.getElementById('profileAddBtn');
+  row.classList.add('visible');
+  btn.style.display = 'none';
+  setTimeout(() => document.getElementById('profileNameInput').focus(), 50);
+}
+
+function confirmNewProfile() {
+  const input = document.getElementById('profileNameInput');
+  const name = (input.value || '').trim();
+  if (!name) { input.focus(); return; }
+  const id = 'p_' + Date.now();
+  const color = PROFILE_COLORS[profiles.length % PROFILE_COLORS.length];
+  profiles.push({ id, name, color });
+  localStorage.setItem('stacks_profiles', JSON.stringify(profiles));
+  input.value = '';
+  switchProfile(id);
+}
+
+function deleteProfile(id) {
+  if (profiles.length <= 1) { showToast('Need at least one profile'); return; }
+  if (!confirm(`Delete this profile and all its data?`)) return;
+  ['saved','read','stats','seen'].forEach(k => localStorage.removeItem('stacks_' + k + '_' + id));
+  profiles = profiles.filter(p => p.id !== id);
+  localStorage.setItem('stacks_profiles', JSON.stringify(profiles));
+  if (currentProfileId === id) {
+    switchProfile(profiles[0].id);
+  } else {
+    renderProfileList();
+  }
+}
+
+function switchProfile(id) {
+  saveSavedBooks(); saveReadBooks(); saveStats(); saveSeenKeys();
+  currentProfileId = id;
+  localStorage.setItem('stacks_current', id);
+  savedBooks = JSON.parse(localStorage.getItem(profileKey('saved')) || '[]');
+  readBooks = JSON.parse(localStorage.getItem(profileKey('read')) || '[]');
+  stats = JSON.parse(localStorage.getItem(profileKey('stats')) || '{"swiped":0,"saved":0,"passed":0,"read":0,"genres":{}}');
+  seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
+  swipeHistory = [];
+  currentBooks = [];
+  document.getElementById('profileOverlay').classList.remove('open');
+  updateProfileAvatar();
+  initQueue();
+  loadNextBooks(5).then(() => renderCards());
+  const name = profiles.find(p => p.id === id)?.name || 'profile';
+  showToast(`Switched to ${name}`);
+}
+
+// ─── Profile Photo Upload ───
+function triggerPhotoUpload() {
+  document.getElementById('photoFileInput').click();
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
+      _customPhotoURL = canvas.toDataURL('image/jpeg', 0.75);
+      if (currentUser && _fbDb) {
+        _fbDb.collection('users').doc(currentUser.uid)
+          .update({ customPhotoURL: _customPhotoURL })
+          .catch(() => pushToFirestore());
+      }
+      updateProfileAvatar();
+      renderProfileList();
+      showToast('Profile photo updated');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  // Reset so same file can be re-selected
+  event.target.value = '';
+}
+
+// ─── Goodreads Import ───
+let _importRows = [];
+
+function openImportModal() {
+  _importRows = [];
+  const prev = document.getElementById('importPreview');
+  const prog = document.getElementById('importProgress');
+  const goBtn = document.getElementById('importGoBtn');
+  const fileInput = document.getElementById('importFileInput');
+  if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+  if (prog) { prog.style.display = 'none'; prog.textContent = ''; }
+  if (goBtn) goBtn.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+  document.getElementById('importOverlay').classList.remove('hidden');
+}
+
+function closeImportModal() {
+  document.getElementById('importOverlay').classList.add('hidden');
+}
+
+function parseCSVLine(line) {
+  const result = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i + 1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur); return result;
+}
+
+function parseGoodreadsCSV(text) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).filter(l => l.trim()).map(l => {
+    const vals = parseCSVLine(l);
+    return Object.fromEntries(headers.map((h, i) => [h, (vals[i] || '').trim()]));
+  });
+}
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      _importRows = parseGoodreadsCSV(e.target.result);
+      const readCount = _importRows.filter(r => r['Exclusive Shelf'] === 'read').length;
+      const wantCount = _importRows.filter(r => ['to-read','currently-reading'].includes(r['Exclusive Shelf'])).length;
+      const prev = document.getElementById('importPreview');
+      prev.innerHTML = `Found <strong>${readCount}</strong> books you've read and <strong>${wantCount}</strong> on your want-to-read list across ${_importRows.length} total entries.`;
+      prev.style.display = '';
+      const goBtn = document.getElementById('importGoBtn');
+      if (readCount + wantCount > 0) goBtn.style.display = '';
+      else goBtn.style.display = 'none';
+    } catch(err) {
+      document.getElementById('importPreview').innerHTML = '⚠️ Could not read this file. Make sure it\'s a Goodreads CSV export.';
+      document.getElementById('importPreview').style.display = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function fetchBookByISBN(isbn) {
+  isbn = (isbn || '').replace(/[^0-9Xx]/g, '');
+  if (!isbn) return null;
+  try {
+    const r = await fetch(`${GB_SEARCH}?q=isbn:${isbn}&maxResults=1&printType=books&key=${GB_API_KEY}`);
+    const d = await r.json();
+    if (d.items?.[0]) return normalizeGBook(d.items[0]);
+    return null;
+  } catch { return null; }
+}
+
+async function runGoodreadsImport() {
+  const goBtn = document.getElementById('importGoBtn');
+  const prog = document.getElementById('importProgress');
+  goBtn.disabled = true;
+  prog.style.display = '';
+
+  const toRead = _importRows.filter(r => ['to-read','currently-reading'].includes(r['Exclusive Shelf']));
+  const readList = _importRows.filter(r => r['Exclusive Shelf'] === 'read');
+  const all = [...readList, ...toRead];
+  let newRead = 0, newSaved = 0;
+
+  for (let i = 0; i < all.length; i++) {
+    const row = all[i];
+    const shelf = row['Exclusive Shelf'];
+    prog.textContent = `Looking up ${i + 1} of ${all.length}: "${row['Title']}"…`;
+
+    // Try OL lookup: ISBN13 → ISBN → title+author
+    let olBook = await fetchBookByISBN(row['ISBN13']) ||
+                 await fetchBookByISBN(row['ISBN']) ||
+                 null;
+    if (!olBook) {
+      const q = `${row['Title']} ${row['Author']}`.trim();
+      if (q) olBook = await fetchBookByQuery(q);
+    }
+
+    const grRating = parseInt(row['My Rating']) || 0;
+    const dateRead = (row['Date Read'] || '').replace(/\//g, '-').slice(0, 10); // YYYY-MM-DD
+
+    const bookObj = olBook ? { ...olBook, _category: categorizeBook(olBook) } : {
+      title: row['Title'] || 'Unknown',
+      author_name: [row['Author'] || 'Unknown'],
+      first_publish_year: parseInt(row['Year Published']) || null,
+      _category: 'fiction'
+    };
+
+    const key = bookKey(bookObj);
+
+    if (shelf === 'read') {
+      if (!readBooks.some(b => bookKey(b) === key)) {
+        readBooks.push({
+          ...bookObj,
+          _rating: grRating > 0 ? grRating : 3,
+          _dateRead: dateRead || new Date().toISOString().split('T')[0],
+          _format: 'physical',
+          _readAt: Date.now()
+        });
+        stats.genres[bookObj._category] = (stats.genres[bookObj._category] || 0) + 1;
+        newRead++;
+      }
+    } else {
+      if (!savedBooks.some(b => bookKey(b) === key) && !readBooks.some(b => bookKey(b) === key)) {
+        savedBooks.push({ ...bookObj, savedAt: Date.now() });
+        newSaved++;
+      }
+    }
+  }
+
+  stats.read = (stats.read || 0) + newRead;
+  stats.saved = (stats.saved || 0) + newSaved;
+  saveSavedBooks(); saveReadBooks(); saveStats();
+
+  prog.textContent = '';
+  goBtn.disabled = false;
+  goBtn.style.display = 'none';
+  document.getElementById('importPreview').innerHTML =
+    `✅ Import complete! Added <strong>${newRead}</strong> read book${newRead !== 1 ? 's' : ''} and <strong>${newSaved}</strong> to your library.`;
+  showToast(`Imported ${newRead + newSaved} books`);
+}
+
+async function init() {
+  if (_appInited) return;
+  _appInited = true;
+  updateProfileAvatar();
+  initQueue();
+  await loadNextBooks(5);
+  renderCards();
+}
+
+// ─── Firestore Sync ───
+let _fsTimer = null;
+function scheduleFirestoreSave() {
+  if (!currentUser || !_fbDb) return;
+  clearTimeout(_fsTimer);
+  _fsTimer = setTimeout(pushToFirestore, 2000);
+}
+
+async function pushToFirestore() {
+  if (!currentUser || !_fbDb) return;
+  try {
+    await _fbDb.collection('users').doc(currentUser.uid).set({
+      saved: savedBooks,
+      read: readBooks,
+      stats,
+      seen: [...seenKeys],
+      customPhotoURL: _customPhotoURL || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.warn('Firestore save failed:', e); }
+}
+
+async function loadFromFirestore() {
+  if (!currentUser || !_fbDb) return false;
+  try {
+    const snap = await _fbDb.collection('users').doc(currentUser.uid).get();
+    if (snap.exists) {
+      const d = snap.data();
+      savedBooks = d.saved || [];
+      readBooks = d.read || [];
+      stats = d.stats || { swiped:0, saved:0, passed:0, read:0, genres:{} };
+      seenKeys = new Set(d.seen || []);
+      _customPhotoURL = d.customPhotoURL || null;
+      // Cache locally for offline use
+      localStorage.setItem(profileKey('saved'), JSON.stringify(savedBooks));
+      localStorage.setItem(profileKey('read'), JSON.stringify(readBooks));
+      localStorage.setItem(profileKey('stats'), JSON.stringify(stats));
+      localStorage.setItem(profileKey('seen'), JSON.stringify([...seenKeys]));
+      return true;
+    }
+  } catch(e) { console.warn('Firestore load failed, using localStorage:', e); }
+  return false;
+}
+
+// ─── Auth UI ───
+function showAuthOverlay() { document.getElementById('authOverlay').classList.remove('hidden'); }
+function hideAuthOverlay() { document.getElementById('authOverlay').classList.add('hidden'); }
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function clearAuthError() { document.getElementById('authError').classList.remove('visible'); }
+
+function toggleAuthMode() {
+  _authMode = _authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('authSubmitBtn').textContent = _authMode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('authToggleBtn').textContent = _authMode === 'signin' ? 'Create an account instead' : 'Sign in instead';
+  clearAuthError();
+}
+
+async function authSignInWithGoogle() {
+  if (!_fbAuth) return;
+  clearAuthError();
+  try {
+    await _fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+  } catch(e) {
+    if (e.code !== 'auth/popup-closed-by-user') showAuthError('Google sign-in failed. Try again.');
+  }
+}
+
+function _getAuthErrorMsg(code) {
+  const msgs = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'Email already in use.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/weak-password': 'Password must be at least 6 characters.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.'
+  };
+  return msgs[code] || 'Sign in failed. Please try again.';
+}
+
+async function authSubmit() {
+  if (!_fbAuth) return;
+  clearAuthError();
+  const email = (document.getElementById('authEmail').value || '').trim();
+  const pass = document.getElementById('authPassword').value || '';
+  if (!email || !pass) { showAuthError('Please enter your email and password.'); return; }
+  try {
+    if (_authMode === 'signin') {
+      await _fbAuth.signInWithEmailAndPassword(email, pass);
+    } else {
+      await _fbAuth.createUserWithEmailAndPassword(email, pass);
+    }
+  } catch(e) { showAuthError(_getAuthErrorMsg(e.code)); }
+}
+
+function continueAsGuest() {
+  _guestMode = true;
+  hideAuthOverlay();
+  init();
+}
+
+async function authSignOut() {
+  if (_fbAuth && currentUser) {
+    saveSavedBooks(); saveReadBooks(); saveStats(); saveSeenKeys();
+    await pushToFirestore();
+    await _fbAuth.signOut();
+  }
+  currentUser = null;
+  _appInited = false;
+  _guestMode = false;
+  document.getElementById('profileOverlay').classList.remove('open');
+  showAuthOverlay();
+}
+
+// ─── Bootstrap ───
+if (FIREBASE_CONFIGURED && _fbAuth) {
+  showAuthOverlay();
+  _fbAuth.onAuthStateChanged(async user => {
+    currentUser = user;
+    if (user) {
+      // Reload state under new uid key before init
+      swipeHistory = []; currentBooks = [];
+      await loadFromFirestore();
+      hideAuthOverlay();
+      if (_appInited) {
+        // Already running (profile switch) — just re-render
+        updateProfileAvatar();
+        initQueue();
+        loadNextBooks(5).then(() => renderCards());
+      } else {
+        init();
+      }
+    } else if (!_guestMode) {
+      _appInited = false;
+      showAuthOverlay();
+    }
+  });
+} else {
+  // Firebase not configured — run in guest/local mode
+  init();
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
