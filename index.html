@@ -1389,6 +1389,165 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 .import-go-btn:disabled { opacity: 0.5; cursor: default; }
 .import-go-btn:not(:disabled):active { opacity: 0.8; }
+
+/* ── Profile Tab (replaces Stats) ── */
+.profile-tab-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 16px 12px;
+}
+.profile-tab-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent-solid); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; flex-shrink: 0;
+  overflow: hidden;
+}
+.profile-tab-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-tab-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.profile-tab-name { font-size: 18px; font-weight: 700; }
+.profile-tab-handle { font-size: 13px; color: var(--text2); }
+.profile-tab-friend-count { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.profile-tab-claim-btn {
+  margin: 8px 16px 0;
+  padding: 11px 14px; border-radius: 12px;
+  border: 1px solid var(--accent-solid); background: none;
+  color: var(--accent-solid); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; text-align: center;
+}
+.profile-tab-section {
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.profile-tab-section h3 {
+  font-size: 14px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ── Friends section ── */
+.friends-search-wrap { position: relative; }
+.friends-search-input {
+  width: 100%; padding: 11px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color 0.15s;
+}
+.friends-search-input:focus { border-color: var(--accent-solid); }
+.user-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.user-row + .user-row { margin-top: 8px; }
+.user-row-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent-solid); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; flex-shrink: 0;
+  overflow: hidden; cursor: pointer;
+}
+.user-row-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-row-meta { flex: 1; min-width: 0; cursor: pointer; }
+.user-row-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-row-handle { font-size: 12px; color: var(--text2); }
+.user-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.user-row-btn {
+  padding: 7px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface3);
+  color: var(--text); font-size: 12px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  transition: background 0.15s;
+}
+.user-row-btn.primary {
+  background: var(--accent-solid); border-color: var(--accent-solid); color: white;
+}
+.user-row-btn.danger { color: var(--red); }
+.user-row-btn:disabled { opacity: 0.5; cursor: default; }
+.friends-empty {
+  font-size: 13px; color: var(--text3); text-align: center;
+  padding: 14px; border: 1px dashed var(--border); border-radius: 12px;
+}
+
+/* ── Username Claim Modal ── */
+.username-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 600;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.username-overlay.hidden { display: none; }
+.username-card {
+  width: 100%; max-width: 360px;
+  background: var(--bg); border-radius: 16px;
+  padding: 24px; display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--border);
+}
+.username-card h2 { font-size: 18px; font-weight: 700; }
+.username-card p { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.username-input-row { display: flex; align-items: center; gap: 0; }
+.username-input-prefix {
+  padding: 13px 6px 13px 14px; border-radius: 12px 0 0 12px;
+  border: 1px solid var(--border); border-right: none;
+  background: var(--surface2); color: var(--text3); font-size: 15px;
+}
+.username-input {
+  flex: 1; padding: 13px 14px 13px 0; border-radius: 0 12px 12px 0;
+  border: 1px solid var(--border); border-left: none;
+  background: var(--surface2); color: var(--text);
+  font-size: 15px; font-family: inherit; outline: none;
+}
+.username-input:focus, .username-input:focus + .username-input-prefix { border-color: var(--accent-solid); }
+.username-status { font-size: 12px; min-height: 16px; }
+.username-status.ok { color: var(--accent-solid); }
+.username-status.err { color: var(--red); }
+.username-save-btn {
+  width: 100%; padding: 13px; border-radius: 12px; border: none;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white; font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.username-save-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Other User Profile Modal ── */
+.user-modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg); z-index: 400;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.user-modal-overlay.hidden { display: none; }
+.user-modal-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(16px + var(--safe-top)) 16px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.user-modal-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); border: none; color: var(--text2);
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.user-modal-title { font-size: 16px; font-weight: 700; }
+.user-modal-body {
+  padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.user-modal-avatar {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: var(--accent-solid); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 700; overflow: hidden;
+  margin-bottom: 8px;
+}
+.user-modal-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-modal-name { font-size: 20px; font-weight: 700; }
+.user-modal-handle { font-size: 14px; color: var(--text2); }
+.user-modal-friend-count { font-size: 13px; color: var(--text3); margin-top: 4px; }
+.user-modal-action {
+  margin-top: 18px; padding: 11px 24px; border-radius: 12px;
+  border: 1px solid var(--accent-solid); background: var(--accent-solid);
+  color: white; font-size: 14px; font-weight: 700;
+  font-family: inherit; cursor: pointer; min-width: 180px;
+}
+.user-modal-action.secondary { background: none; color: var(--accent-solid); }
+.user-modal-action.danger { border-color: var(--red); color: var(--red); background: none; }
+
 </style>
 </head>
 <body>
@@ -1511,7 +1670,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         <h2>Search</h2>
         <div class="search-bar">
           <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search">
-          <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+          <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
           <button class="search-go" onclick="doSearch()">Search</button>
         </div>
         <div class="search-results" id="searchResults"></div>
@@ -1519,7 +1678,28 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     </div>
 
     <!-- Stats -->
-    <div class="screen" id="screen-stats">
+    <div class="screen" id="screen-profile">
+      <div class="profile-tab-header">
+        <div class="profile-tab-avatar" id="profileTabAvatar"></div>
+        <div class="profile-tab-meta">
+          <div class="profile-tab-name" id="profileTabName">—</div>
+          <div class="profile-tab-handle" id="profileTabHandle"></div>
+          <div class="profile-tab-friend-count" id="profileTabFriendCount"></div>
+        </div>
+      </div>
+      <button class="profile-tab-claim-btn" id="profileTabClaimBtn" style="display:none" onclick="openUsernameModal()">Pick a username to connect with friends</button>
+
+      <div class="profile-tab-section" id="friendsSection" style="display:none">
+        <h3>Friends</h3>
+        <div class="friends-search-wrap">
+          <input type="text" class="friends-search-input" id="friendsSearchInput" placeholder="Search by @handle or name" autocomplete="off">
+        </div>
+        <div id="friendsSearchResults"></div>
+        <div id="incomingRequestsWrap"></div>
+        <div id="outgoingRequestsWrap"></div>
+        <div id="friendsListWrap"></div>
+      </div>
+
       <div class="stats">
         <h2>Your Stats</h2>
         <div class="year-goal-card">
@@ -1555,7 +1735,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <button class="nav-btn" data-tab="search" onclick="switchTab('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Search</button>
     <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Library</button>
     <button class="nav-btn" data-tab="read" onclick="switchTab('read')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Read</button>
-    <button class="nav-btn" data-tab="stats" onclick="switchTab('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Stats</button>
+    <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
   </nav>
 </div>
 
@@ -1599,12 +1779,12 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   <div class="rate-modal" onclick="event.stopPropagation()">
     <h3 id="rateModalTitle">Rate this book</h3>
     <div class="rate-subtitle" id="rateModalSubtitle"></div>
-    <div class="rate-stars" id="rateStars">
-      <span class="star" onclick="setRating(1)">★</span>
-      <span class="star" onclick="setRating(2)">★</span>
-      <span class="star" onclick="setRating(3)">★</span>
-      <span class="star" onclick="setRating(4)">★</span>
-      <span class="star" onclick="setRating(5)">★</span>
+    <div class="rate-stars" id="rateStars" role="group" aria-label="Rating">
+      <span class="star" role="button" tabindex="0" aria-label="1 star" onclick="setRating(1)">★</span>
+      <span class="star" role="button" tabindex="0" aria-label="2 stars" onclick="setRating(2)">★</span>
+      <span class="star" role="button" tabindex="0" aria-label="3 stars" onclick="setRating(3)">★</span>
+      <span class="star" role="button" tabindex="0" aria-label="4 stars" onclick="setRating(4)">★</span>
+      <span class="star" role="button" tabindex="0" aria-label="5 stars" onclick="setRating(5)">★</span>
     </div>
     <div class="rate-field">
       <span class="rate-field-label">Started</span>
@@ -1688,10 +1868,34 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   </div>
 </div>
 
+<!-- Username Claim Modal -->
+<div class="username-overlay hidden" id="usernameOverlay">
+  <div class="username-card">
+    <h2>Pick a username</h2>
+    <p>Your username lets friends find you and follow your reading. Usernames can't be changed yet, so choose carefully. Lowercase letters, numbers, and underscores (3–20 chars).</p>
+    <div class="username-input-row">
+      <span class="username-input-prefix">@</span>
+      <input type="text" class="username-input" id="usernameInput" maxlength="20" autocomplete="off" placeholder="your_handle" oninput="onUsernameInput()">
+    </div>
+    <div class="username-status" id="usernameStatus"></div>
+    <button class="username-save-btn" id="usernameSaveBtn" disabled onclick="saveUsername()">Claim username</button>
+    <button class="auth-toggle-btn" onclick="closeUsernameModal()">Maybe later</button>
+  </div>
+</div>
+
+<!-- Other User Profile Modal -->
+<div class="user-modal-overlay hidden" id="userModalOverlay">
+  <div class="user-modal-header">
+    <button class="user-modal-close" aria-label="Close profile" onclick="closeUserModal()">✕</button>
+    <div class="user-modal-title">Profile</div>
+  </div>
+  <div class="user-modal-body" id="userModalBody"></div>
+</div>
+
 <!-- Goodreads Import Modal -->
 <div class="import-overlay hidden" id="importOverlay">
   <div class="import-header">
-    <button class="import-close-btn" onclick="closeImportModal()">✕</button>
+    <button class="import-close-btn" aria-label="Close import" onclick="closeImportModal()">✕</button>
     <div class="import-title">Import from Goodreads</div>
   </div>
   <div class="import-body">
@@ -1821,7 +2025,7 @@ const SUMMARY_PATTERNS = [
   /\bclinical\s+(study|trial|guide)\b/i,
   /\bwith\s+related\s+texts\b/i, /\bedited\s+and\s+translated\b/i,
   /\buser('?s)?\s+manual\b/i, /\bowner('?s)?\s+manual\b/i,
-  /\binstruction\s+book\b/i, /\bhow\s+to\b/i,
+  /\binstruction\s+book\b/i,
   // Derivative / knockoff / fan books about other authors' works
   /\bevolutionary\s+ideas\b/i, /\bfacts\s+about\b/i,
   /\bfan\s+(book|guide|companion)\b/i, /\bunofficial\s+(guide|companion)\b/i,
@@ -1896,9 +2100,23 @@ function isOriginalBook(book) {
     'games & activities', 'art', 'drama', 'poetry',
     'true crime', 'humor', 'performing arts'
   ];
-  for (const c of badCats) { if (cats.includes(c)) return false; }
+  // Some categories OWN subjects that would otherwise be filtered globally — e.g.
+  // browsing LDS pulls religion books on purpose. Exempt those.
+  const exemptCats = (CATEGORY_BAD_CAT_EXEMPTIONS[currentCategory] || []);
+  for (const c of badCats) {
+    if (exemptCats.includes(c)) continue;
+    if (cats.includes(c)) return false;
+  }
   return true;
 }
+
+// Subjects that are normally filtered globally but should be allowed when the
+// active category genuinely contains those books.
+const CATEGORY_BAD_CAT_EXEMPTIONS = {
+  'lds': ['religion'],
+  'self-help': ['psychology', 'body, mind & spirit'],
+  'memoir': ['psychology']
+};
 
 // Check if a book is already saved, read, or swiped on
 function isAlreadyKnown(book) {
@@ -2066,29 +2284,27 @@ const CURATED = {
     "the+big+switch+nicholas+carr", "coders+at+work+seibel",
     "where+wizards+stay+up+late", "the+soul+of+a+new+machine+kidder"
   ],
+  // New Releases uses orderBy=newest + a publishedDate cutoff (see loadNextBooks).
+  // Broad genre queries surface the freshest top-rated book per genre and don't
+  // go stale year-over-year. Specific titles were removed because they decay
+  // (wrong years, mis-attributions, books that never shipped).
   new_releases: [
-    "onyx+storm+rebecca+yarros+2025", "sunrise+on+the+reaping+suzanne+collins+2025",
-    "wind+and+truth+brandon+sanderson+2025", "the+familiar+leigh+bardugo+2025",
-    "counting+miracles+nicholas+sparks+2025", "the+women+kristin+hannah+2025",
-    "caledonian+road+andrew+oloughlin+2025", "we+solve+murders+richard+osman+2025",
-    "the+curse+of+pietro+houdini+derek+b+miller+2025",
-    "aftermath+rachel+cusk+2025", "blue+sisters+coco+mellors+2025",
-    "the+wedding+people+alison+espach+2025", "games+of+desire+colleen+hoover+2025",
-    "my+vampire+plus+one+jenna+guillaume+2025", "the+record+player+colleen+hoover+2025",
-    "eruption+michael+crichton+james+patterson+2025",
-    "death+of+the+black+widow+james+patterson+2025",
-    "the+grey+wolves+louise+penny+2025", "the+last+murder+at+the+end+of+the+world+stuart+turton+2025",
-    "all+the+colours+of+the+dark+chris+whitaker+2025",
-    "the+midnight+library+matt+haig+2025", "the+life+impossible+matt+haig+2025",
-    "someone+like+us+dinaw+mengestu+2025", "how+to+end+a+love+story+yulin+kuang+2025",
-    "the+paradise+problem+christina+lauren+2025",
-    "wild+eyes+elsie+silver+2025", "the+striker+ana+huang+2025",
-    "bride+ali+hazelwood+2025", "king+of+sloth+ana+huang+2025",
-    "just+for+the+summer+abby+jimenez+2025",
-    "if+only+i+had+told+her+laura+nowlin+2025",
-    "the+atlas+complex+olivie+blake+2025", "iron+flame+rebecca+yarros+2025",
-    "house+of+salt+and+sorrows+erin+a+craig+2025",
-    "assistant+to+the+villain+hannah+nicole+maehrer+2025"
+    // Fiction (literary + contemporary)
+    "literary+fiction", "contemporary+fiction", "historical+fiction",
+    "book+club+fiction", "literary+novel",
+    // Genre fiction
+    "fantasy+novel", "epic+fantasy", "urban+fantasy", "romantasy",
+    "science+fiction+novel", "space+opera", "dystopian+fiction",
+    "thriller+novel", "psychological+thriller", "mystery+novel",
+    "crime+fiction", "detective+novel",
+    "romance+novel", "contemporary+romance", "romantic+suspense",
+    "young+adult+fiction", "young+adult+fantasy",
+    // Non-fiction
+    "memoir", "biography", "narrative+nonfiction",
+    "self+help+psychology", "business+leadership",
+    "popular+history", "popular+science", "essay+collection",
+    // Catch-all
+    "bestseller+fiction", "bestseller+nonfiction"
   ]
 };
 
@@ -2157,7 +2373,11 @@ async function fetchBookByQuery(query, options = {}) {
       let best = null, bestScore = -1;
       for (const item of data.items) {
         const book = normalizeGBook(item);
-        if (!isOriginalBook(book) || !queryMatchesTitle(query, book) || isAlreadyKnown(book)) continue;
+        if (!isOriginalBook(book) || isAlreadyKnown(book)) continue;
+        // New Releases uses broad genre queries ("fantasy novel", "memoir") — the
+        // book's title won't contain those words, so skip the title-match check
+        // there and trust Google Books' subject relevance + orderBy=newest.
+        if (!options.newRelease && !queryMatchesTitle(query, book)) continue;
         const rc = book.ratings_count || 0;
         const ra = book.ratings_average || 0;
         const score = (Math.log10(rc + 1) * 2) + (ra * 1.5);
@@ -2320,6 +2540,7 @@ async function loadForYouBooks(count = 5) {
     }
   }
   isFetching = false;
+  rerenderIfDeckWasEmpty();
 }
 
 // ─── Book Loading ───
@@ -2364,6 +2585,7 @@ async function loadNextBooks(count = 3) {
     }
   }
   isFetching = false;
+  rerenderIfDeckWasEmpty();
 }
 
 // ─── Card Rendering ───
@@ -2376,7 +2598,7 @@ function renderCards() {
 
   if (currentBooks.length === 0) {
     stack.style.display = 'none'; actions.style.display = 'none'; empty.style.display = 'flex';
-    if (currentCategory === 'for-you' && readBooks.length === 0)
+    if (currentCategory === 'for-you' && !hasRatedBooks())
       empty.innerHTML = '<div class="emoji">📖</div><h3>Rate some books first</h3><p>Mark books as read and rate them to get personalized recommendations</p>';
     else if (currentCategory === 'for-you')
       empty.innerHTML = '<div class="emoji">✨</div><h3>No more recommendations</h3><p>Rate more books to discover new ones</p>';
@@ -2386,6 +2608,7 @@ function renderCards() {
   }
 
   empty.style.display = 'none'; stack.style.display = 'block'; actions.style.display = 'flex';
+  stack.querySelectorAll('.book-card').forEach(c => c._cleanupMouse && c._cleanupMouse());
   stack.innerHTML = '';
 
   const toRender = currentBooks.slice(0, 2);
@@ -2420,6 +2643,11 @@ function renderCards() {
   if (currentBooks.length < 5) loadNextBooks(5);
 }
 
+// If the deck ran dry while a fetch was in flight, the empty state is showing — refresh it
+function rerenderIfDeckWasEmpty() {
+  if (currentBooks.length && document.getElementById('emptyState').style.display === 'flex') renderCards();
+}
+
 function setupSwipeGestures(card) {
   let startX, deltaX = 0, startTime;
   const threshold = 80, velThresh = 0.5;
@@ -2450,8 +2678,12 @@ function setupSwipeGestures(card) {
   card.addEventListener('touchend', onEnd);
   let md = false;
   card.addEventListener('mousedown', e => { md = true; onStart(e.clientX); });
-  document.addEventListener('mousemove', e => { if (md) onMove(e.clientX); });
-  document.addEventListener('mouseup', () => { if (md) { md = false; onEnd(); } });
+  const _mm = e => { if (md) onMove(e.clientX); };
+  const _mu = () => { if (md) { md = false; onEnd(); } };
+  document.addEventListener('mousemove', _mm);
+  document.addEventListener('mouseup', _mu);
+  // Document-level listeners would otherwise leak (and pin the card) on every render
+  card._cleanupMouse = () => { document.removeEventListener('mousemove', _mm); document.removeEventListener('mouseup', _mu); };
 }
 
 function animateOut(card, dir) {
@@ -2496,6 +2728,7 @@ async function showDetail(book) {
   if (!book) return;
   const modal = document.getElementById('detailModal');
   document.getElementById('modalCover').src = getCoverUrl(book);
+  document.getElementById('modalCover').alt = book.title ? `Cover of ${book.title}` : '';
   document.getElementById('modalTitle').textContent = book.title;
   document.getElementById('modalAuthor').textContent = (book.author_name || ['Unknown Author']).join(', ');
   document.getElementById('modalPages').textContent = book.number_of_pages_median || '—';
@@ -2657,11 +2890,26 @@ function markCurrentlyReading() {
   // Also remove from saved/library if present
   savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks();
   seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
+  removeFromDeck(key);
   closeModal();
   showToast(`Started reading "${book.title}"`);
 }
 
+// If a book was consumed via the detail modal (marked read / reading) while sitting
+// on the Discover deck, remove its card so it can't be swiped again.
+function removeFromDeck(key) {
+  const i = currentBooks.findIndex(b => bookKey(b) === key);
+  if (i !== -1) { currentBooks.splice(i, 1); renderCards(); }
+}
+
 function setRating(n) { pendingRating = n; updateRateStars(n); }
+
+// Keyboard support for the rating stars
+document.querySelectorAll('#rateStars .star').forEach((s, i) => {
+  s.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRating(i + 1); }
+  });
+});
 
 function updateRateStars(n) { document.querySelectorAll('#rateStars .star').forEach((s, i) => s.classList.toggle('filled', i < n)); }
 
@@ -2717,6 +2965,7 @@ function confirmMarkRead() {
   }
   savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks();
   seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
+  removeFromDeck(key);
   closeRateModal(); closeModal();
   showToast(`Rated "${book.title}" ${starsStr(pendingRating)}`);
 }
@@ -2724,6 +2973,15 @@ function confirmMarkRead() {
 function starsStr(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
 
 // ─── Library ───
+// Swap a broken cover <img> for a text placeholder (titles may contain quotes,
+// so this can't be done safely with an inline outerHTML string)
+function gridImgFallback(img) {
+  const d = document.createElement('div');
+  d.className = 'grid-book-placeholder';
+  d.textContent = img.alt || 'No cover';
+  img.replaceWith(d);
+}
+
 function renderLibrary() {
   const grid = document.getElementById('bookGrid');
   const emptyEl = document.getElementById('libraryEmpty');
@@ -2739,13 +2997,13 @@ function renderLibrary() {
     const selected = librarySelected.has(key);
     if (librarySelectMode) {
       return `<div class="grid-book select-mode${selected ? ' selected' : ''}" onclick="toggleLibraryItemSelect(${idx})">
-        <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="this.outerHTML='<div class=grid-book-placeholder>${escHtml(book.title)}</div>'">
+        <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="gridImgFallback(this)">
         <div class="grid-book-checkbox">${selected ? '✓' : ''}</div>
       </div>`;
     }
     return `<div class="grid-book" onclick="showDetail(savedBooks[${idx}])">
-      <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="this.outerHTML='<div class=grid-book-placeholder>${escHtml(book.title)}</div>'">
-      <button class="remove-btn" onclick="event.stopPropagation();removeFromLibrary(${idx})">✕</button>
+      <img src="${getCoverUrl(book)}" alt="${escHtml(book.title)}" onerror="gridImgFallback(this)">
+      <button class="remove-btn" aria-label="Remove ${escHtml(book.title)}" onclick="event.stopPropagation();removeFromLibrary(${idx})">✕</button>
     </div>`;
   }).join('');
 }
@@ -2785,7 +3043,7 @@ function confirmLibraryMassDelete() {
   const removedCount = librarySelected.size;
   savedBooks = savedBooks.filter(b => !librarySelected.has(bookKey(b)));
   saveSavedBooks();
-  stats.saved = Math.max(0, savedBooks.length);
+  stats.saved = Math.max(0, stats.saved - removedCount);
   saveStats();
   toggleLibrarySelect(); // exits mode and re-renders
   showToast(`Removed ${removedCount} book${removedCount !== 1 ? 's' : ''}`);
@@ -2849,7 +3107,7 @@ function renderReadList() {
         </div>
       </div>
       <div class="read-item-actions">
-        <button class="read-remove-btn" onclick="event.stopPropagation();removeFromRead(${idx})">✕</button>
+        <button class="read-remove-btn" aria-label="Remove ${escHtml(book.title)} from read list" onclick="event.stopPropagation();removeFromRead(${idx})">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -2883,7 +3141,12 @@ async function doSearch() {
   const books = await searchBooks(query);
   if (!books.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🔍</div><h3>No results found</h3><p>Try a different search</p></div>'; return; }
   window.searchResultBooks = books.map(b => ({ ...b, _category: categorizeBook(b) }));
-  el.innerHTML = books.map((book, i) => {
+  renderSearchResults();
+}
+
+function renderSearchResults() {
+  const el = document.getElementById('searchResults');
+  el.innerHTML = (window.searchResultBooks || []).map((book, i) => {
     const readEntry = readBooks.find(b => bookKey(b) === bookKey(book));
     const isRead = !!readEntry;
     const isReading = isRead && readEntry._currentlyReading;
@@ -2913,7 +3176,7 @@ function addFromSearch(i) {
   savedBooks.unshift({ ...book, savedAt: Date.now() }); saveSavedBooks();
   stats.saved++; stats.swiped++;
   stats.genres[book._category] = (stats.genres[book._category] || 0) + 1;
-  saveStats(); showToast(`Saved "${book.title}"`); doSearch();
+  saveStats(); showToast(`Saved "${book.title}"`); renderSearchResults();
 }
 
 function clearSearch() {
@@ -2932,8 +3195,10 @@ function renderStats() {
   document.getElementById('statPassed').textContent = stats.passed;
   document.getElementById('statRead').textContent = stats.read || 0;
   document.getElementById('statRate').textContent = stats.swiped > 0 ? Math.round((stats.saved / stats.swiped) * 100) + '%' : '0%';
-  if (readBooks.length > 0) {
-    const avg = readBooks.reduce((s, b) => s + (b._rating || 0), 0) / readBooks.length;
+  // Only average books that actually have a rating (skip currently-reading / unrated)
+  const ratedBooks = readBooks.filter(b => !b._currentlyReading && (b._rating || 0) > 0);
+  if (ratedBooks.length > 0) {
+    const avg = ratedBooks.reduce((s, b) => s + b._rating, 0) / ratedBooks.length;
     document.getElementById('statAvgRating').textContent = avg.toFixed(1) + ' ★';
   } else document.getElementById('statAvgRating').textContent = '—';
 
@@ -2956,7 +3221,7 @@ function renderStats() {
     : 0;
   document.getElementById('yearGoalFill').style.width = pct + '%';
 
-  const genreNames = { fiction: 'Fiction', science_fiction: 'Sci-Fi', memoir: 'Memoirs', 'self-help': 'Self-Help', business: 'Business' };
+  const genreNames = { fiction: 'Fiction', science_fiction: 'Sci-Fi', memoir: 'Memoirs', 'self-help': 'Self-Help', business: 'Business', lds: 'LDS', technology: 'Technology' };
   const maxVal = Math.max(1, ...Object.values(stats.genres));
   document.getElementById('genreBars').innerHTML = Object.keys(genreNames).map(key => {
     const val = stats.genres[key] || 0;
@@ -2982,6 +3247,9 @@ function saveYearlyGoal() {
 }
 
 // ─── Category Selection ───
+// For You needs at least one book rated 3+ stars to generate recommendations
+function hasRatedBooks() { return readBooks.some(b => (b._rating || 0) >= 3); }
+
 function selectCategory(cat) {
   currentCategory = cat;
   document.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
@@ -2990,7 +3258,7 @@ function selectCategory(cat) {
   document.getElementById('cardStack').style.display = 'none';
   document.getElementById('swipeActions').style.display = 'none';
   document.getElementById('emptyState').style.display = 'none';
-  if (cat === 'for-you' && !readBooks.length) {
+  if (cat === 'for-you' && !hasRatedBooks()) {
     document.getElementById('loadingState').style.display = 'none';
     const e = document.getElementById('emptyState');
     e.style.display = 'flex';
@@ -3008,7 +3276,11 @@ function switchTab(tab) {
   document.getElementById('categoryPills').style.display = tab === 'discover' ? 'flex' : 'none';
   if (tab === 'library') renderLibrary();
   if (tab === 'read') renderReadList();
-  if (tab === 'stats') renderStats();
+  if (tab === 'profile') {
+    renderStats(); renderProfileTab();
+    // Refresh friends/requests in the background so new requests show up without a reload
+    if (currentUser && _fbDb) loadSocialState().then(renderProfileTab);
+  }
 }
 
 // ─── Refresh books with Google Books data ───
@@ -3195,12 +3467,7 @@ function switchProfile(id) {
   saveSavedBooks(); saveReadBooks(); saveStats(); saveSeenKeys();
   currentProfileId = id;
   localStorage.setItem('stacks_current', id);
-  savedBooks = JSON.parse(localStorage.getItem(profileKey('saved')) || '[]');
-  readBooks = JSON.parse(localStorage.getItem(profileKey('read')) || '[]');
-  stats = JSON.parse(localStorage.getItem(profileKey('stats')) || '{"swiped":0,"saved":0,"passed":0,"read":0,"genres":{}}');
-  seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
-  swipeHistory = [];
-  currentBooks = [];
+  reloadStateFromLocalStorage();
   document.getElementById('profileOverlay').classList.remove('open');
   updateProfileAvatar();
   initQueue();
@@ -3230,9 +3497,13 @@ function handlePhotoUpload(event) {
       ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
       _customPhotoURL = canvas.toDataURL('image/jpeg', 0.75);
       if (currentUser && _fbDb) {
+        // Publish to the public profile doc (photoURL is an allowed field; customPhotoURL is not)
         _fbDb.collection('users').doc(currentUser.uid)
-          .update({ customPhotoURL: _customPhotoURL })
-          .catch(() => pushToFirestore());
+          .set({ photoURL: _customPhotoURL }, { merge: true })
+          .catch(e => console.warn('Photo publish failed:', e));
+        if (_profile) _profile.photoURL = _customPhotoURL;
+        scheduleFirestoreSave(); // persists customPhotoURL in private state
+        renderProfileTab();
       }
       updateProfileAvatar();
       renderProfileList();
@@ -3358,13 +3629,18 @@ async function runGoodreadsImport() {
 
     if (shelf === 'read') {
       if (!readBooks.some(b => bookKey(b) === key)) {
-        readBooks.push({
+        // Goodreads "Date Read" is user-entered, so mirror it into _dateFinished
+        // (the field the yearly-goal logic counts). Leave _dateFinished undefined
+        // when the CSV row has no Date Read — don't fabricate a finish date.
+        const entry = {
           ...bookObj,
           _rating: grRating > 0 ? grRating : 3,
           _dateRead: dateRead || new Date().toISOString().split('T')[0],
           _format: 'physical',
           _readAt: Date.now()
-        });
+        };
+        if (dateRead) entry._dateFinished = dateRead;
+        readBooks.push(entry);
         stats.genres[bookObj._category] = (stats.genres[bookObj._category] || 0) + 1;
         newRead++;
       }
@@ -3405,10 +3681,18 @@ function scheduleFirestoreSave() {
   _fsTimer = setTimeout(pushToFirestore, 2000);
 }
 
+// Track consecutive save failures so we can warn the user if cloud sync is broken.
+// A single failure is usually a flaky network; persistent failures usually mean
+// the doc has grown past the 1MB Firestore limit or rules rejected the write.
+let _saveFailureStreak = 0;
+let _saveWarnedAt = 0;
+
 async function pushToFirestore() {
   if (!currentUser || !_fbDb) return;
   try {
-    await _fbDb.collection('users').doc(currentUser.uid).set({
+    // Private state lives under users/{uid}/private/state so other users can't read it.
+    // The parent users/{uid} doc only holds public profile fields (see ensureProfileDoc).
+    await _fbDb.collection('users').doc(currentUser.uid).collection('private').doc('state').set({
       saved: savedBooks,
       read: readBooks,
       stats,
@@ -3416,15 +3700,40 @@ async function pushToFirestore() {
       customPhotoURL: _customPhotoURL || null,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-  } catch(e) { console.warn('Firestore save failed:', e); }
+    _saveFailureStreak = 0;
+  } catch(e) {
+    console.warn('Firestore save failed:', e);
+    _saveFailureStreak++;
+    // After 2 consecutive failures, surface it. Re-warn at most once an hour
+    // so we don't spam users who are offline for a while.
+    const now = Date.now();
+    if (_saveFailureStreak >= 2 && now - _saveWarnedAt > 60 * 60 * 1000) {
+      _saveWarnedAt = now;
+      const looksLikeSizeLimit = /document.*exceeds the maximum/i.test(String(e?.message || ''));
+      showToast(looksLikeSizeLimit
+        ? 'Your library is too large to sync — local copy is safe, but cloud backup is paused.'
+        : 'Cloud sync failed — local copy is safe. Will keep retrying.');
+    }
+  }
 }
 
 async function loadFromFirestore() {
   if (!currentUser || !_fbDb) return false;
   try {
-    const snap = await _fbDb.collection('users').doc(currentUser.uid).get();
-    if (snap.exists) {
-      const d = snap.data();
+    // Try private subdoc first.
+    const privSnap = await _fbDb.collection('users').doc(currentUser.uid).collection('private').doc('state').get();
+    let d = null, fromLegacy = false;
+    if (privSnap.exists) {
+      d = privSnap.data();
+    } else {
+      // Migration: legacy data on the parent users/{uid} doc.
+      const legacy = await _fbDb.collection('users').doc(currentUser.uid).get();
+      if (legacy.exists && (legacy.data().saved || legacy.data().read || legacy.data().stats)) {
+        d = legacy.data();
+        fromLegacy = true;
+      }
+    }
+    if (d) {
       savedBooks = d.saved || [];
       readBooks = d.read || [];
       stats = d.stats || { swiped:0, saved:0, passed:0, read:0, genres:{} };
@@ -3435,6 +3744,19 @@ async function loadFromFirestore() {
       localStorage.setItem(profileKey('read'), JSON.stringify(readBooks));
       localStorage.setItem(profileKey('stats'), JSON.stringify(stats));
       localStorage.setItem(profileKey('seen'), JSON.stringify([...seenKeys]));
+      // Migrate: rewrite to private subdoc, then null out legacy fields on parent.
+      if (fromLegacy) {
+        await pushToFirestore();
+        try {
+          await _fbDb.collection('users').doc(currentUser.uid).set({
+            saved: firebase.firestore.FieldValue.delete(),
+            read: firebase.firestore.FieldValue.delete(),
+            stats: firebase.firestore.FieldValue.delete(),
+            seen: firebase.firestore.FieldValue.delete(),
+            customPhotoURL: firebase.firestore.FieldValue.delete()
+          }, { merge: true });
+        } catch (e) { console.warn('Legacy field cleanup failed (non-fatal):', e); }
+      }
       return true;
     }
   } catch(e) { console.warn('Firestore load failed, using localStorage:', e); }
@@ -3497,8 +3819,19 @@ async function authSubmit() {
   } catch(e) { showAuthError(_getAuthErrorMsg(e.code)); }
 }
 
+function reloadStateFromLocalStorage() {
+  savedBooks = JSON.parse(localStorage.getItem(profileKey('saved')) || '[]');
+  readBooks = JSON.parse(localStorage.getItem(profileKey('read')) || '[]');
+  stats = JSON.parse(localStorage.getItem(profileKey('stats')) || '{"swiped":0,"saved":0,"passed":0,"read":0,"genres":{},"yearlyGoal":0}');
+  if (typeof stats.yearlyGoal !== 'number') stats.yearlyGoal = 0;
+  seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
+  swipeHistory = []; currentBooks = [];
+}
+
 function continueAsGuest() {
   _guestMode = true;
+  // Reload guest-profile state so a previously signed-in account's data doesn't leak in
+  reloadStateFromLocalStorage();
   hideAuthOverlay();
   init();
 }
@@ -3512,9 +3845,433 @@ async function authSignOut() {
   currentUser = null;
   _appInited = false;
   _guestMode = false;
+  _customPhotoURL = null;
+  _profile = null; _friends = []; _incomingRequests = []; _outgoingRequests = [];
   document.getElementById('profileOverlay').classList.remove('open');
   showAuthOverlay();
 }
+
+// ─── Social: profile, friends, requests ───
+// Local cache of social state — refreshed from Firestore on sign-in and after writes.
+let _profile = null;                  // { username, displayName, photoURL, bio }
+let _friends = [];                    // [{ uid, username, displayName, photoURL, since }]
+let _incomingRequests = [];           // [{ uid, username, displayName, photoURL, sentAt }]
+let _outgoingRequests = [];           // [{ uid, username, displayName, photoURL, sentAt }]
+let _userSearchDebounce = null;
+
+function isSocialReady() { return !!(currentUser && _fbDb && _profile && _profile.username); }
+
+function escUser(u) { return escHtml(u || ''); }
+
+function initialsOf(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+}
+
+// On sign-in, ensure users/{uid} has a profile doc with mirrored auth fields.
+// Username is NOT set here — user claims one later via the modal.
+async function ensureProfileDoc() {
+  if (!currentUser || !_fbDb) return;
+  try {
+    const ref = _fbDb.collection('users').doc(currentUser.uid);
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data() : {};
+    _profile = {
+      username: data.username || null,
+      displayName: currentUser.displayName || data.displayName || (currentUser.email || '').split('@')[0] || 'Reader',
+      photoURL: _customPhotoURL || currentUser.photoURL || data.photoURL || null,
+      bio: data.bio || ''
+    };
+    // Mirror auth fields into the user doc (so other users can see them in search).
+    await ref.set({
+      displayName: _profile.displayName,
+      displayNameLower: _profile.displayName.toLowerCase(),
+      photoURL: _profile.photoURL || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (e) { console.warn('ensureProfileDoc failed:', e); }
+}
+
+async function loadSocialState() {
+  if (!currentUser || !_fbDb) return;
+  try {
+    const [friendsSnap, inSnap, outSnap] = await Promise.all([
+      _fbDb.collection('users').doc(currentUser.uid).collection('friends').get(),
+      _fbDb.collection('users').doc(currentUser.uid).collection('incomingRequests').get(),
+      _fbDb.collection('users').doc(currentUser.uid).collection('outgoingRequests').get()
+    ]);
+    _friends = friendsSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    _incomingRequests = inSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    _outgoingRequests = outSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('loadSocialState failed:', e);
+    _friends = []; _incomingRequests = []; _outgoingRequests = [];
+  }
+}
+
+// ─── Username claim ───
+function openUsernameModal() {
+  if (!currentUser || !_fbDb) { showToast('Sign in to pick a username'); return; }
+  document.getElementById('usernameOverlay').classList.remove('hidden');
+  document.getElementById('usernameInput').value = '';
+  document.getElementById('usernameStatus').textContent = '';
+  document.getElementById('usernameStatus').className = 'username-status';
+  document.getElementById('usernameSaveBtn').disabled = true;
+  setTimeout(() => document.getElementById('usernameInput').focus(), 50);
+}
+function closeUsernameModal() {
+  document.getElementById('usernameOverlay').classList.add('hidden');
+}
+
+let _usernameCheckTimer = null;
+function onUsernameInput() {
+  const inp = document.getElementById('usernameInput');
+  const status = document.getElementById('usernameStatus');
+  const btn = document.getElementById('usernameSaveBtn');
+  // Sanitize as user types
+  inp.value = inp.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const v = inp.value;
+  btn.disabled = true;
+  if (!v) { status.textContent = ''; status.className = 'username-status'; return; }
+  if (v.length < 3) { status.textContent = 'At least 3 characters'; status.className = 'username-status err'; return; }
+  status.textContent = 'Checking…'; status.className = 'username-status';
+  clearTimeout(_usernameCheckTimer);
+  _usernameCheckTimer = setTimeout(async () => {
+    try {
+      const snap = await _fbDb.collection('usernames').doc(v).get();
+      if (snap.exists) {
+        status.textContent = '@' + v + ' is taken'; status.className = 'username-status err';
+        btn.disabled = true;
+      } else {
+        status.textContent = '@' + v + ' is available'; status.className = 'username-status ok';
+        btn.disabled = false;
+      }
+    } catch (e) {
+      console.warn('username check failed:', e);
+      status.textContent = 'Could not check — try again'; status.className = 'username-status err';
+    }
+  }, 350);
+}
+
+async function saveUsername() {
+  if (!currentUser || !_fbDb) return;
+  const v = document.getElementById('usernameInput').value;
+  if (!v || v.length < 3) return;
+  const btn = document.getElementById('usernameSaveBtn');
+  btn.disabled = true;
+  try {
+    // Reserve the username atomically: one batch creates usernames/{v} (rules reject if taken)
+    // and writes the handle to the user doc — so a partial failure can't strand the handle.
+    const batch = _fbDb.batch();
+    batch.set(_fbDb.collection('usernames').doc(v), { uid: currentUser.uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.set(_fbDb.collection('users').doc(currentUser.uid), { username: v }, { merge: true });
+    await batch.commit();
+    _profile.username = v;
+    closeUsernameModal();
+    showToast('Username @' + v + ' claimed');
+    renderProfileTab();
+  } catch (e) {
+    console.warn('saveUsername failed:', e);
+    document.getElementById('usernameStatus').textContent = 'Could not claim — try a different one';
+    document.getElementById('usernameStatus').className = 'username-status err';
+    btn.disabled = false;
+  }
+}
+
+// ─── User search ───
+async function searchUsers(q) {
+  if (!q || !_fbDb) return [];
+  q = q.trim().toLowerCase().replace(/^@/, '');
+  if (q.length < 2) return [];
+  try {
+    // Prefix search by username, then by displayNameLower; merge & dedupe.
+    const end = q + '';
+    const [byHandle, byName] = await Promise.all([
+      _fbDb.collection('users').where('username', '>=', q).where('username', '<', end).limit(10).get(),
+      _fbDb.collection('users').where('displayNameLower', '>=', q).where('displayNameLower', '<', end).limit(10).get()
+    ]);
+    const seen = new Set();
+    const results = [];
+    for (const d of [...byHandle.docs, ...byName.docs]) {
+      if (d.id === currentUser.uid) continue;
+      if (seen.has(d.id)) continue;
+      seen.add(d.id);
+      const data = d.data();
+      if (!data.username) continue; // only surface users who've claimed a handle
+      results.push({ uid: d.id, username: data.username, displayName: data.displayName || '', photoURL: data.photoURL || null });
+    }
+    return results.slice(0, 12);
+  } catch (e) {
+    console.warn('searchUsers failed:', e);
+    return [];
+  }
+}
+
+// ─── Friend actions ───
+function _friendSnapshot() {
+  return {
+    username: _profile.username,
+    displayName: _profile.displayName,
+    photoURL: _profile.photoURL || null
+  };
+}
+
+async function sendFriendRequest(targetUid, target) {
+  if (!isSocialReady()) { showToast('Claim a username first'); return; }
+  if (targetUid === currentUser.uid) return;
+  try {
+    const me = _friendSnapshot();
+    const batch = _fbDb.batch();
+    const sentAt = firebase.firestore.FieldValue.serverTimestamp();
+    // Their incoming
+    batch.set(_fbDb.collection('users').doc(targetUid).collection('incomingRequests').doc(currentUser.uid),
+      { ...me, sentAt });
+    // My outgoing
+    batch.set(_fbDb.collection('users').doc(currentUser.uid).collection('outgoingRequests').doc(targetUid),
+      { username: target.username, displayName: target.displayName, photoURL: target.photoURL || null, sentAt });
+    await batch.commit();
+    _outgoingRequests.push({ uid: targetUid, username: target.username, displayName: target.displayName, photoURL: target.photoURL || null });
+    showToast('Friend request sent');
+    renderFriendsSection();
+  } catch (e) { console.warn('sendFriendRequest failed:', e); showToast('Could not send request'); }
+}
+
+async function cancelFriendRequest(targetUid) {
+  if (!currentUser || !_fbDb) return;
+  try {
+    const batch = _fbDb.batch();
+    batch.delete(_fbDb.collection('users').doc(targetUid).collection('incomingRequests').doc(currentUser.uid));
+    batch.delete(_fbDb.collection('users').doc(currentUser.uid).collection('outgoingRequests').doc(targetUid));
+    await batch.commit();
+    _outgoingRequests = _outgoingRequests.filter(r => r.uid !== targetUid);
+    renderFriendsSection();
+  } catch (e) { console.warn('cancelFriendRequest failed:', e); }
+}
+
+async function acceptFriendRequest(fromUid) {
+  if (!isSocialReady()) return;
+  const req = _incomingRequests.find(r => r.uid === fromUid);
+  if (!req) return;
+  try {
+    const me = _friendSnapshot();
+    const batch = _fbDb.batch();
+    const since = firebase.firestore.FieldValue.serverTimestamp();
+    // Add to both friends subcollections
+    batch.set(_fbDb.collection('users').doc(currentUser.uid).collection('friends').doc(fromUid),
+      { username: req.username, displayName: req.displayName, photoURL: req.photoURL || null, since });
+    batch.set(_fbDb.collection('users').doc(fromUid).collection('friends').doc(currentUser.uid),
+      { ...me, since });
+    // Clean up pending docs on both sides
+    batch.delete(_fbDb.collection('users').doc(currentUser.uid).collection('incomingRequests').doc(fromUid));
+    batch.delete(_fbDb.collection('users').doc(fromUid).collection('outgoingRequests').doc(currentUser.uid));
+    await batch.commit();
+    _friends.push({ uid: fromUid, ...req });
+    _incomingRequests = _incomingRequests.filter(r => r.uid !== fromUid);
+    showToast('You and @' + req.username + ' are now friends');
+    renderProfileTab();
+  } catch (e) { console.warn('acceptFriendRequest failed:', e); showToast('Could not accept'); }
+}
+
+async function declineFriendRequest(fromUid) {
+  if (!currentUser || !_fbDb) return;
+  try {
+    const batch = _fbDb.batch();
+    batch.delete(_fbDb.collection('users').doc(currentUser.uid).collection('incomingRequests').doc(fromUid));
+    batch.delete(_fbDb.collection('users').doc(fromUid).collection('outgoingRequests').doc(currentUser.uid));
+    await batch.commit();
+    _incomingRequests = _incomingRequests.filter(r => r.uid !== fromUid);
+    renderFriendsSection();
+  } catch (e) { console.warn('declineFriendRequest failed:', e); }
+}
+
+async function removeFriend(otherUid) {
+  if (!currentUser || !_fbDb) return;
+  if (!confirm('Remove this friend?')) return;
+  try {
+    const batch = _fbDb.batch();
+    batch.delete(_fbDb.collection('users').doc(currentUser.uid).collection('friends').doc(otherUid));
+    batch.delete(_fbDb.collection('users').doc(otherUid).collection('friends').doc(currentUser.uid));
+    await batch.commit();
+    _friends = _friends.filter(f => f.uid !== otherUid);
+    showToast('Friend removed');
+    renderProfileTab();
+    closeUserModal();
+  } catch (e) { console.warn('removeFriend failed:', e); showToast('Could not remove'); }
+}
+
+// ─── Relationship helper ───
+function relationshipTo(uid) {
+  if (!currentUser || uid === currentUser?.uid) return 'self';
+  if (_friends.some(f => f.uid === uid)) return 'friend';
+  if (_outgoingRequests.some(r => r.uid === uid)) return 'pending-out';
+  if (_incomingRequests.some(r => r.uid === uid)) return 'pending-in';
+  return 'none';
+}
+
+// ─── Rendering ───
+function renderProfileTab() {
+  if (!currentUser) {
+    // Guest mode — show a hint and hide friends section
+    document.getElementById('profileTabAvatar').textContent = '?';
+    document.getElementById('profileTabName').textContent = 'Guest';
+    document.getElementById('profileTabHandle').textContent = 'Sign in to connect with friends';
+    document.getElementById('profileTabFriendCount').textContent = '';
+    document.getElementById('profileTabClaimBtn').style.display = 'none';
+    document.getElementById('friendsSection').style.display = 'none';
+    return;
+  }
+  // Avatar
+  const avatarEl = document.getElementById('profileTabAvatar');
+  const photo = _profile?.photoURL;
+  if (photo) avatarEl.innerHTML = `<img src="${escUser(photo)}" alt="">`;
+  else avatarEl.textContent = initialsOf(_profile?.displayName);
+  document.getElementById('profileTabName').textContent = _profile?.displayName || 'Reader';
+  document.getElementById('profileTabHandle').textContent = _profile?.username ? '@' + _profile.username : '';
+  document.getElementById('profileTabFriendCount').textContent =
+    _profile?.username ? `${_friends.length} friend${_friends.length === 1 ? '' : 's'}` : '';
+  // Claim button vs friends section
+  if (!_profile?.username) {
+    document.getElementById('profileTabClaimBtn').style.display = '';
+    document.getElementById('friendsSection').style.display = 'none';
+  } else {
+    document.getElementById('profileTabClaimBtn').style.display = 'none';
+    document.getElementById('friendsSection').style.display = '';
+    renderFriendsSection();
+  }
+}
+
+function renderFriendsSection() {
+  // Incoming requests
+  const inWrap = document.getElementById('incomingRequestsWrap');
+  if (_incomingRequests.length) {
+    inWrap.innerHTML = `<h3 style="margin-top:10px">Requests</h3>` + _incomingRequests.map(r => `
+      <div class="user-row">
+        <div class="user-row-avatar" onclick="viewUserProfile('${r.uid}')">${r.photoURL ? `<img src="${escUser(r.photoURL)}">` : escUser(initialsOf(r.displayName))}</div>
+        <div class="user-row-meta" onclick="viewUserProfile('${r.uid}')">
+          <div class="user-row-name">${escUser(r.displayName)}</div>
+          <div class="user-row-handle">@${escUser(r.username)}</div>
+        </div>
+        <div class="user-row-actions">
+          <button class="user-row-btn primary" onclick="acceptFriendRequest('${r.uid}')">Accept</button>
+          <button class="user-row-btn" onclick="declineFriendRequest('${r.uid}')">Decline</button>
+        </div>
+      </div>`).join('');
+  } else inWrap.innerHTML = '';
+
+  // Outgoing requests
+  const outWrap = document.getElementById('outgoingRequestsWrap');
+  if (_outgoingRequests.length) {
+    outWrap.innerHTML = `<h3 style="margin-top:10px">Pending</h3>` + _outgoingRequests.map(r => `
+      <div class="user-row">
+        <div class="user-row-avatar" onclick="viewUserProfile('${r.uid}')">${r.photoURL ? `<img src="${escUser(r.photoURL)}">` : escUser(initialsOf(r.displayName))}</div>
+        <div class="user-row-meta" onclick="viewUserProfile('${r.uid}')">
+          <div class="user-row-name">${escUser(r.displayName)}</div>
+          <div class="user-row-handle">@${escUser(r.username)}</div>
+        </div>
+        <div class="user-row-actions">
+          <button class="user-row-btn" onclick="cancelFriendRequest('${r.uid}')">Cancel</button>
+        </div>
+      </div>`).join('');
+  } else outWrap.innerHTML = '';
+
+  // Friends list
+  const listWrap = document.getElementById('friendsListWrap');
+  if (_friends.length) {
+    listWrap.innerHTML = `<h3 style="margin-top:10px">Friends (${_friends.length})</h3>` + _friends.map(f => `
+      <div class="user-row">
+        <div class="user-row-avatar" onclick="viewUserProfile('${f.uid}')">${f.photoURL ? `<img src="${escUser(f.photoURL)}">` : escUser(initialsOf(f.displayName))}</div>
+        <div class="user-row-meta" onclick="viewUserProfile('${f.uid}')">
+          <div class="user-row-name">${escUser(f.displayName)}</div>
+          <div class="user-row-handle">@${escUser(f.username)}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    listWrap.innerHTML = `<h3 style="margin-top:10px">Friends</h3><div class="friends-empty">No friends yet — search above to find people.</div>`;
+  }
+}
+
+async function onFriendsSearch() {
+  const q = document.getElementById('friendsSearchInput').value;
+  const out = document.getElementById('friendsSearchResults');
+  clearTimeout(_userSearchDebounce);
+  if (!q || q.trim().length < 2) { out.innerHTML = ''; return; }
+  // Keep previous results on screen while typing; only show the placeholder when empty
+  if (!out.innerHTML.trim()) out.innerHTML = `<div class="friends-empty">Searching…</div>`;
+  _userSearchDebounce = setTimeout(async () => {
+    const results = await searchUsers(q);
+    if (!results.length) { out.innerHTML = `<div class="friends-empty">No matches</div>`; return; }
+    window._friendSearchResults = results;
+    out.innerHTML = results.map((u, i) => {
+      const rel = relationshipTo(u.uid);
+      let action = '';
+      if (rel === 'friend') action = `<button class="user-row-btn" disabled>Friends</button>`;
+      else if (rel === 'pending-out') action = `<button class="user-row-btn" onclick="cancelFriendRequest('${u.uid}')">Cancel</button>`;
+      else if (rel === 'pending-in') action = `<button class="user-row-btn primary" onclick="acceptFriendRequest('${u.uid}')">Accept</button>`;
+      else action = `<button class="user-row-btn primary" onclick="sendFriendRequest('${u.uid}', _friendSearchResults[${i}])">Add</button>`;
+      return `
+        <div class="user-row">
+          <div class="user-row-avatar" onclick="viewUserProfile('${u.uid}')">${u.photoURL ? `<img src="${escUser(u.photoURL)}">` : escUser(initialsOf(u.displayName))}</div>
+          <div class="user-row-meta" onclick="viewUserProfile('${u.uid}')">
+            <div class="user-row-name">${escUser(u.displayName)}</div>
+            <div class="user-row-handle">@${escUser(u.username)}</div>
+          </div>
+          <div class="user-row-actions">${action}</div>
+        </div>`;
+    }).join('');
+  }, 250);
+}
+
+// ─── Other-user profile modal ───
+async function viewUserProfile(uid) {
+  if (!_fbDb || !uid) return;
+  if (uid === currentUser?.uid) { switchTab('profile'); return; }
+  document.getElementById('userModalOverlay').classList.remove('hidden');
+  const body = document.getElementById('userModalBody');
+  body.innerHTML = `<div style="padding:32px;color:var(--text2)">Loading…</div>`;
+  try {
+    const [userSnap, friendsSnap] = await Promise.all([
+      _fbDb.collection('users').doc(uid).get(),
+      _fbDb.collection('users').doc(uid).collection('friends').get().catch(() => ({ size: null }))
+    ]);
+    if (!userSnap.exists) { body.innerHTML = `<div style="padding:32px;color:var(--text2)">User not found</div>`; return; }
+    const d = userSnap.data();
+    const rel = relationshipTo(uid);
+    let actionHtml = '';
+    if (rel === 'self') {
+      actionHtml = '';
+    } else if (rel === 'friend') {
+      actionHtml = `<button class="user-modal-action danger" onclick="removeFriend('${uid}')">Remove friend</button>`;
+    } else if (rel === 'pending-out') {
+      actionHtml = `<button class="user-modal-action secondary" onclick="cancelFriendRequest('${uid}');closeUserModal()">Cancel request</button>`;
+    } else if (rel === 'pending-in') {
+      actionHtml = `<button class="user-modal-action" onclick="acceptFriendRequest('${uid}');closeUserModal()">Accept request</button>`;
+    } else if (!_profile?.username) {
+      actionHtml = `<button class="user-modal-action secondary" onclick="closeUserModal();openUsernameModal()">Claim username to add</button>`;
+    } else {
+      window._viewedUserTarget = { username: d.username, displayName: d.displayName, photoURL: d.photoURL || null };
+      actionHtml = `<button class="user-modal-action" onclick="sendFriendRequest('${uid}', _viewedUserTarget);closeUserModal()">Add friend</button>`;
+    }
+    const fc = friendsSnap.size != null ? friendsSnap.size : '';
+    body.innerHTML = `
+      <div class="user-modal-avatar">${d.photoURL ? `<img src="${escUser(d.photoURL)}">` : escUser(initialsOf(d.displayName))}</div>
+      <div class="user-modal-name">${escUser(d.displayName || 'Reader')}</div>
+      <div class="user-modal-handle">${d.username ? '@' + escUser(d.username) : ''}</div>
+      ${fc !== '' ? `<div class="user-modal-friend-count">${fc} friend${fc === 1 ? '' : 's'}</div>` : ''}
+      ${actionHtml}
+    `;
+  } catch (e) {
+    console.warn('viewUserProfile failed:', e);
+    body.innerHTML = `<div style="padding:32px;color:var(--text2)">Could not load profile</div>`;
+  }
+}
+function closeUserModal() { document.getElementById('userModalOverlay').classList.add('hidden'); }
+
+// Wire up the search input on first render
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('friendsSearchInput');
+  if (inp) inp.addEventListener('input', onFriendsSearch);
+});
 
 // ─── Bootstrap ───
 if (FIREBASE_CONFIGURED && _fbAuth) {
@@ -3525,6 +4282,8 @@ if (FIREBASE_CONFIGURED && _fbAuth) {
       // Reload state under new uid key before init
       swipeHistory = []; currentBooks = [];
       await loadFromFirestore();
+      await ensureProfileDoc();
+      await loadSocialState();
       hideAuthOverlay();
       if (_appInited) {
         // Already running (profile switch) — just re-render

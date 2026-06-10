@@ -1,0 +1,112 @@
+// Stacks — Firestore security rules
+//
+// Deploy: paste the contents of this file into the Firebase Console for project
+// stacks-7fbea → Firestore Database → Rules → Publish.
+//
+// Data model (Phase 1):
+//   users/{uid}                              // public profile: username, displayName, displayNameLower, photoURL, bio
+//   users/{uid}/private/state                // private app state: saved, read, stats, seen, customPhotoURL
+//   users/{uid}/friends/{friendUid}          // accepted friends (mutual)
+//   users/{uid}/incomingRequests/{fromUid}   // pending requests received
+//   users/{uid}/outgoingRequests/{toUid}     // pending requests sent
+//   usernames/{handle}                        // { uid } — uniqueness lookup
+//
+// Privacy summary:
+//   - Anyone signed in can read other users' PUBLIC profile (users/{uid} doc).
+//   - Only the owner can read their PRIVATE state (saved/read/stats/seen).
+//   - Anyone signed in can read another user's friends count (subcollection exists check),
+//     but cannot inspect another user's pending requests.
+//   - To send a friend request: requester writes to recipient's incomingRequests AND own outgoingRequests.
+//   - To accept: both users mutate each other's friends + cleanup pending docs.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ─────────────────────────────────────────────────────────
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Public profile fields that are allowed to be written on users/{uid}.
+    // Anything outside this set on the parent doc is rejected to keep private data
+    // from sneaking back in.
+    function publicProfileFields() {
+      return [
+        'username', 'displayName', 'displayNameLower',
+        'photoURL', 'bio', 'updatedAt'
+      ];
+    }
+
+    // ── users/{uid} — public profile ───────────────────────────────────
+    match /users/{uid} {
+      // Anyone signed in can read another user's public profile.
+      allow read: if signedIn();
+
+      // The owner can create/update — but only fields in publicProfileFields().
+      // Once a username is set it cannot be changed (Phase 1 — relax later if needed).
+      allow create: if isSelf(uid)
+                    && request.resource.data.keys().hasOnly(publicProfileFields());
+
+      allow update: if isSelf(uid)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(publicProfileFields())
+                    && (
+                         !('username' in resource.data) ||
+                         request.resource.data.username == resource.data.username
+                       );
+
+      allow delete: if false; // never (could orphan friends' references)
+
+      // ── private/{doc} — only the owner ──
+      match /private/{doc} {
+        allow read, write: if isSelf(uid);
+      }
+
+      // ── friends/{friendUid} — accepted friends ──
+      // Anyone signed in can read your friends list (for friend count, mutual friends UI later).
+      // Writes are intentionally controlled by the accept/remove flow on BOTH sides:
+      //   - create allowed if the writer is either side of the friendship
+      //   - delete allowed if the writer is either side (so removeFriend can clean both docs)
+      match /friends/{friendUid} {
+        allow read: if signedIn();
+        allow create: if signedIn() && (isSelf(uid) || isSelf(friendUid));
+        allow update: if signedIn() && (isSelf(uid) || isSelf(friendUid));
+        allow delete: if signedIn() && (isSelf(uid) || isSelf(friendUid));
+      }
+
+      // ── incomingRequests/{fromUid} ──
+      // Owner can read their inbox. The sender can create their own request doc
+      // in the recipient's inbox (key must equal sender's uid). Either side can
+      // delete (to support accept/decline/cancel).
+      match /incomingRequests/{fromUid} {
+        allow read: if isSelf(uid);
+        allow create: if signedIn()
+                      && isSelf(fromUid)
+                      && uid != fromUid;
+        allow delete: if isSelf(uid) || isSelf(fromUid);
+      }
+
+      // ── outgoingRequests/{toUid} ──
+      // Owner can read/manage their sent requests.
+      match /outgoingRequests/{toUid} {
+        allow read: if isSelf(uid);
+        allow create, update, delete: if isSelf(uid);
+        // Allow the recipient to delete the sender's outgoing record when accepting/declining.
+        allow delete: if isSelf(toUid);
+      }
+    }
+
+    // ── usernames/{handle} — uniqueness lookup ─────────────────────────
+    // Anyone signed in can read (to check availability and resolve handle → uid).
+    // Create is allowed only if the writer claims it for themselves and the handle
+    // matches the allowed format (lowercase, 3–20 chars, alnum + underscore).
+    // No updates or deletes for Phase 1 — username changes come later.
+    match /usernames/{handle} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && handle.matches('^[a-z0-9_]{3,20}$');
+      allow update, delete: if false;
+    }
+  }
+}
