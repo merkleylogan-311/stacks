@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stacks-v3';
+const CACHE_NAME = 'stacks-v4';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -13,7 +13,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   // Network-first for API calls, cache-first for assets
-  if (e.request.url.includes('googleapis.com/books')) {
+  if (e.request.url.includes('googleapis.com/books') || e.request.url.includes('api.nytimes.com')) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
   } else {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));

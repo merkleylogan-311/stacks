@@ -1212,6 +1212,31 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .read-meta-tag.narration-up { background: rgba(74,222,128,0.15); color: var(--green); }
 .read-meta-tag.narration-down { background: rgba(248,113,113,0.15); color: var(--red); }
 
+/* Content warnings */
+.content-warnings-field { margin-bottom: 14px; text-align: left; }
+.content-warn-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0;
+}
+.content-warn-label { font-size: 13px; color: var(--text); }
+.severity-selector { display: flex; gap: 4px; }
+.severity-btn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text3);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.severity-btn.active { color: var(--text); }
+.severity-btn.active[data-sev="mild"] { border-color: var(--yellow); background: rgba(250,204,21,0.1); color: var(--yellow); }
+.severity-btn.active[data-sev="moderate"] { border-color: var(--accent-solid); background: rgba(230,104,60,0.1); color: var(--accent-solid); }
+.severity-btn.active[data-sev="heavy"] { border-color: var(--red); background: rgba(248,113,113,0.1); color: var(--red); }
+.read-meta-tag.mature { background: rgba(248,113,113,0.15); color: var(--red); }
+
 .rate-actions { display: flex; gap: 10px; margin-top: 4px; }
 
 .rate-btn {
@@ -1918,6 +1943,36 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         <button class="narration-btn down" onclick="setNarrationRating('down')" aria-label="Bad narration">👎 <span class="label">Bad</span></button>
       </div>
     </div>
+    <div class="content-warnings-field">
+      <span class="rate-field-label">Content</span>
+      <div class="content-warn-row">
+        <span class="content-warn-label">Language</span>
+        <div class="severity-selector" data-cat="language">
+          <button class="severity-btn active" data-sev="none" onclick="setSeverity('language','none')">None</button>
+          <button class="severity-btn" data-sev="mild" onclick="setSeverity('language','mild')">Mild</button>
+          <button class="severity-btn" data-sev="moderate" onclick="setSeverity('language','moderate')">Mod</button>
+          <button class="severity-btn" data-sev="heavy" onclick="setSeverity('language','heavy')">Heavy</button>
+        </div>
+      </div>
+      <div class="content-warn-row">
+        <span class="content-warn-label">Sexuality</span>
+        <div class="severity-selector" data-cat="sexuality">
+          <button class="severity-btn active" data-sev="none" onclick="setSeverity('sexuality','none')">None</button>
+          <button class="severity-btn" data-sev="mild" onclick="setSeverity('sexuality','mild')">Mild</button>
+          <button class="severity-btn" data-sev="moderate" onclick="setSeverity('sexuality','moderate')">Mod</button>
+          <button class="severity-btn" data-sev="heavy" onclick="setSeverity('sexuality','heavy')">Heavy</button>
+        </div>
+      </div>
+      <div class="content-warn-row">
+        <span class="content-warn-label">Violence</span>
+        <div class="severity-selector" data-cat="violence">
+          <button class="severity-btn active" data-sev="none" onclick="setSeverity('violence','none')">None</button>
+          <button class="severity-btn" data-sev="mild" onclick="setSeverity('violence','mild')">Mild</button>
+          <button class="severity-btn" data-sev="moderate" onclick="setSeverity('violence','moderate')">Mod</button>
+          <button class="severity-btn" data-sev="heavy" onclick="setSeverity('violence','heavy')">Heavy</button>
+        </div>
+      </div>
+    </div>
     <div class="rate-actions">
       <button class="rate-btn cancel" onclick="closeRateModal()">Cancel</button>
       <button class="rate-btn confirm" onclick="confirmMarkRead()">Save</button>
@@ -2104,6 +2159,7 @@ let touchDeltaX = 0, isDragging = false;
 let pendingRating = 0;
 let pendingFormat = '';
 let pendingNarration = null; // 'up' | 'down' | null — only persisted when format is audiobook
+let pendingContentWarnings = { language: 'none', sexuality: 'none', violence: 'none' };
 let editingBookKey = null; // null = marking new; non-null = editing existing read book
 let librarySelectMode = false;
 let librarySelected = new Set(); // book keys
@@ -2666,14 +2722,203 @@ async function loadForYouBooks(count = 5) {
   rerenderIfDeckWasEmpty();
 }
 
+// ─── NYT Books API ───
+// Public read-only bestseller-list API. The key below is a free dev key — it
+// rate-limits and exposes only public data, so embedding it client-side is fine.
+const NYT_API_KEY = 'PJ1Ug8hezAKWaM4eI8IjyZIYooXQZexS7YKE2EHgMn5Od3o8';
+const NYT_BASE = 'https://api.nytimes.com/svc/books/v3';
+const NYT_CACHE_TTL = 12 * 60 * 60 * 1000;
+
+// Map app categories to one or more NYT bestseller list slugs.
+const NYT_GENRE_LISTS = {
+  fiction: ['combined-print-and-e-book-fiction', 'hardcover-fiction', 'trade-fiction-paperback'],
+  science_fiction: ['combined-print-and-e-book-fiction'],
+  suspense: ['combined-print-and-e-book-fiction'],
+  fantasy: ['combined-print-and-e-book-fiction'],
+  memoir: ['combined-print-and-e-book-nonfiction'],
+  'self-help': ['advice-how-to-and-miscellaneous'],
+  business: ['business-books'],
+  religion: ['religion-spirituality-and-faith'],
+  lds: ['religion-spirituality-and-faith'],
+  history: ['combined-print-and-e-book-nonfiction'],
+  non_fiction: ['combined-print-and-e-book-nonfiction', 'hardcover-nonfiction'],
+  technology: ['combined-print-and-e-book-nonfiction'],
+  new_releases: ['combined-print-and-e-book-fiction', 'combined-print-and-e-book-nonfiction'],
+  all: ['combined-print-and-e-book-fiction', 'combined-print-and-e-book-nonfiction']
+};
+
+// Sub-genre filtering by description keywords (when a list is broader than the category).
+const NYT_GENRE_KEYWORDS = {
+  science_fiction: ['sci-fi', 'science fiction', 'dystopi', 'space', 'robot', 'android', 'future', 'alien'],
+  suspense: ['thriller', 'suspense', 'mystery', 'detective', 'crime', 'murder', 'killer', 'investigat'],
+  fantasy: ['fantasy', 'magic', 'dragon', 'wizard', 'sword', 'quest', 'kingdom', 'enchant', 'sorcery'],
+  memoir: ['memoir', 'autobiograph', 'personal story', 'life story', 'true story'],
+  history: ['history', 'historical', 'war', 'civil war', 'world war', 'revolution', 'ancient'],
+  technology: ['tech', 'silicon valley', 'internet', 'software', 'artificial intelligence', 'computer'],
+  religion: ['faith', 'spiritual', 'god', 'church', 'christian', 'prayer', 'soul', 'biblical'],
+  lds: ['lds', 'latter-day saint', 'mormon', 'book of mormon', 'restored', 'prophet']
+};
+
+function getNYTCache(key) {
+  try {
+    const raw = localStorage.getItem('nyt_cache_' + key);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > NYT_CACHE_TTL) { localStorage.removeItem('nyt_cache_' + key); return null; }
+    return data;
+  } catch { return null; }
+}
+function setNYTCache(key, data) {
+  try { localStorage.setItem('nyt_cache_' + key, JSON.stringify({ data, ts: Date.now() })); } catch {}
+}
+
+function normalizeNYTBook(b) {
+  return {
+    key: 'nyt_' + (b.primary_isbn13 || b.primary_isbn10 || (b.title || '').replace(/\s+/g, '_')),
+    title: b.title || '',
+    author_name: b.author ? [b.author] : (b.contributor ? [b.contributor.replace(/^by\s+/i, '')] : []),
+    first_publish_year: null,
+    number_of_pages_median: null,
+    subject: [],
+    ratings_average: null,
+    ratings_count: 0,
+    _coverUrl: b.book_image || '',
+    _hasRealCover: !!b.book_image,
+    _publicDomain: false,
+    _description: b.description || '',
+    language: ['en'],
+    isbn: [b.primary_isbn13, b.primary_isbn10].filter(Boolean),
+    _nytRank: b.rank || null,
+    _nytWeeksOnList: b.weeks_on_list || 0,
+    _nytListName: b.list_name || '',
+    _nytPublisher: b.publisher || ''
+  };
+}
+
+async function fetchNYTList(listName, date = 'current') {
+  const cacheKey = `${listName}_${date}`;
+  const cached = getNYTCache(cacheKey);
+  if (cached) return cached;
+  try {
+    const url = date === 'current'
+      ? `${NYT_BASE}/lists/current/${listName}.json?api-key=${NYT_API_KEY}`
+      : `${NYT_BASE}/lists/${date}/${listName}.json?api-key=${NYT_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) { console.warn('NYT API error:', res.status); return []; }
+    const data = await res.json();
+    const books = (data.results?.books || []).map(b => ({ ...b, list_name: listName }));
+    setNYTCache(cacheKey, books);
+    return books;
+  } catch (e) { console.warn('NYT fetch error:', e); return []; }
+}
+
+function getRecentDates(count = 3) {
+  const dates = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - (i * 30));
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+async function fetchNYTBooksForGenre(genre) {
+  const listNames = NYT_GENRE_LISTS[genre] || NYT_GENRE_LISTS.all;
+  const allBooks = [];
+  const seen = new Set();
+  // Current list + 2 recent months for a deeper pool — most of these are cached.
+  const dates = ['current', ...getRecentDates(2).slice(1)];
+  for (const listName of listNames) {
+    for (const date of dates) {
+      const books = await fetchNYTList(listName, date);
+      for (const b of books) {
+        const key = (b.primary_isbn13 || b.title || '').toLowerCase();
+        if (!seen.has(key)) { seen.add(key); allBooks.push(b); }
+      }
+    }
+  }
+  const keywords = NYT_GENRE_KEYWORDS[genre];
+  if (keywords) {
+    const filtered = allBooks.filter(b => {
+      const text = ((b.description || '') + ' ' + (b.title || '')).toLowerCase();
+      return keywords.some(kw => text.includes(kw));
+    });
+    if (filtered.length >= 3) return filtered;
+  }
+  return allBooks;
+}
+
+// Enrich a sparse NYT book record with Google Books data (better cover, page count, year, subjects).
+async function enrichWithGoogleBooks(book) {
+  if (!book || !book.title) return book;
+  try {
+    const q = book.title + (book.author_name?.[0] ? ' ' + book.author_name[0] : '');
+    const url = `${GB_SEARCH}?q=${encodeURIComponent(q)}&langRestrict=en&maxResults=3&printType=books&key=${GB_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return book;
+    const data = await res.json();
+    if (!data.items?.length) return book;
+    const match = data.items.find(item => {
+      const vi = item.volumeInfo || {};
+      return (vi.title || '').toLowerCase().includes(book.title.toLowerCase().split(':')[0].trim().split('(')[0].trim());
+    }) || data.items[0];
+    const vi = match.volumeInfo || {};
+    const ai = match.accessInfo || {};
+    const thumb = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || '';
+    const hasRealCover = thumb.includes('edge=curl') || thumb.includes('img=1&zoom=1&edge');
+    return {
+      ...book,
+      key: match.id || book.key,
+      first_publish_year: vi.publishedDate ? parseInt(vi.publishedDate) : book.first_publish_year,
+      number_of_pages_median: vi.pageCount || book.number_of_pages_median,
+      subject: (vi.categories || []).length > 0 ? vi.categories : book.subject,
+      ratings_average: vi.averageRating || book.ratings_average,
+      ratings_count: vi.ratingsCount || book.ratings_count,
+      _coverUrl: (hasRealCover && thumb) ? thumb.replace('http://', 'https://') : (book._coverUrl || thumb.replace('http://', 'https://')),
+      _hasRealCover: hasRealCover || book._hasRealCover,
+      _publicDomain: ai.publicDomain === true,
+      _description: vi.description || book._description,
+      language: vi.language ? [vi.language] : book.language
+    };
+  } catch { return book; }
+}
+
 // ─── Book Loading ───
 let bookQueue = [], queueIndex = 0;
+let nytBooksLoaded = false; // reset when category changes so each gets a fresh NYT batch
 
 function initQueue() {
-  if (currentCategory === 'for-you') { bookQueue = []; queueIndex = 0; return; }
+  if (currentCategory === 'for-you') { bookQueue = []; queueIndex = 0; nytBooksLoaded = false; return; }
   if (currentCategory === 'all') bookQueue = getAllCurated();
   else bookQueue = shuffleArray(CURATED[currentCategory].map(q => ({ query: q, category: currentCategory })));
   queueIndex = 0;
+  nytBooksLoaded = false;
+}
+
+async function loadNYTBooks(genre, count) {
+  const raw = await fetchNYTBooksForGenre(genre);
+  if (!raw.length) return 0;
+  let candidates = raw
+    .map(normalizeNYTBook)
+    .filter(b => b._coverUrl && b.title && !isAlreadyKnown(b));
+  candidates = shuffleArray(candidates);
+  const toLoad = candidates.slice(0, count);
+  const enriched = await Promise.all(toLoad.map(async book => {
+    try {
+      const eb = await enrichWithGoogleBooks(book);
+      eb._category = (genre !== 'all' && genre !== 'new_releases') ? genre : categorizeBook(eb);
+      return eb;
+    } catch {
+      book._category = (genre !== 'all' && genre !== 'new_releases') ? genre : categorizeBook(book);
+      return book;
+    }
+  }));
+  let added = 0;
+  for (const book of enriched) {
+    if (book && !isAlreadyKnown(book)) { currentBooks.push(book); added++; }
+  }
+  return added;
 }
 
 async function loadNextBooks(count = 3) {
@@ -2681,6 +2926,15 @@ async function loadNextBooks(count = 3) {
   if (isFetching) return;
   isFetching = true;
   let successes = 0;
+
+  // First pass: NYT bestsellers (once per category — cached for 12h via getNYTCache).
+  if (!nytBooksLoaded) {
+    nytBooksLoaded = true;
+    try { successes = await loadNYTBooks(currentCategory, Math.max(count + 10, 15)); }
+    catch (e) { console.warn('NYT load failed, falling back to genre queries:', e); }
+  }
+
+  // Fall back to the genre/curated Google Books queries if NYT was empty or short.
   let rounds = 0;
   const maxRounds = 3;
   const isNewReleases = currentCategory === 'new_releases';
@@ -2981,12 +3235,20 @@ function openRateModal(editKey = null) {
   pendingRating = editKey ? (book._rating || 0) : 0;
   pendingFormat = editKey ? (book._format || '') : '';
   pendingNarration = editKey ? (book._narrationRating || null) : null;
+  pendingContentWarnings = (editKey && book._contentWarnings)
+    ? { language: 'none', sexuality: 'none', violence: 'none', ...book._contentWarnings }
+    : { language: 'none', sexuality: 'none', violence: 'none' };
   updateRateStars(pendingRating);
   document.querySelectorAll('.format-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.fmt === pendingFormat));
   document.querySelectorAll('.narration-btn').forEach(b =>
     b.classList.toggle('active', !!pendingNarration && b.classList.contains(pendingNarration)));
   document.getElementById('narrationField').classList.toggle('visible', pendingFormat === 'audiobook');
+  for (const cat of ['language', 'sexuality', 'violence']) {
+    const row = document.querySelector(`.severity-selector[data-cat="${cat}"]`);
+    if (row) row.querySelectorAll('.severity-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.sev === pendingContentWarnings[cat]));
+  }
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('rateDateStartedInput').value =
     editKey ? (book._dateStarted || '') : today;
@@ -3053,6 +3315,18 @@ function setNarrationRating(val) {
     b.classList.toggle('active', !!pendingNarration && b.classList.contains(pendingNarration)));
 }
 
+function setSeverity(cat, sev) {
+  pendingContentWarnings[cat] = sev;
+  const row = document.querySelector(`.severity-selector[data-cat="${cat}"]`);
+  if (row) row.querySelectorAll('.severity-btn').forEach(b => b.classList.toggle('active', b.dataset.sev === sev));
+}
+
+function hasContentWarnings(book) {
+  const cw = book._contentWarnings;
+  if (!cw) return false;
+  return cw.language !== 'none' || cw.sexuality !== 'none' || cw.violence !== 'none';
+}
+
 function confirmMarkRead() {
   if (pendingRating === 0) { showToast('Please select a rating'); return; }
   const dateStarted = document.getElementById('rateDateStartedInput').value || '';
@@ -3067,6 +3341,7 @@ function confirmMarkRead() {
       rb._rating = pendingRating;
       rb._format = pendingFormat || rb._format || 'physical';
       rb._narrationRating = rb._format === 'audiobook' ? pendingNarration : null;
+      rb._contentWarnings = { ...pendingContentWarnings };
       rb._dateStarted = dateStarted;
       rb._dateFinished = dateFinished;
       rb._dateRead = dateFinished; // keep legacy field in sync
@@ -3095,6 +3370,7 @@ function confirmMarkRead() {
       _dateRead: dateFinished, // legacy alias
       _format: fmt,
       _narrationRating: fmt === 'audiobook' ? pendingNarration : null,
+      _contentWarnings: { ...pendingContentWarnings },
       _category: book._category || categorizeBook(book)
     });
     saveReadBooks();
@@ -3252,6 +3528,7 @@ function renderReadList() {
         <div class="read-item-meta">
           ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
           ${!isReading && fmt === 'audiobook' && book._narrationRating ? `<span class="read-meta-tag narration-${book._narrationRating}">${book._narrationRating === 'up' ? '👍' : '👎'} Narration</span>` : ''}
+          ${hasContentWarnings(book) ? '<span class="read-meta-tag mature">⚠ Mature Content</span>' : ''}
           ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
         </div>
       </div>
