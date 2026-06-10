@@ -1,5 +1,31 @@
 {
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "**/node_modules/**",
+      ".claude/**",
+      ".firebase/**",
+      ".firebaserc",
+      ".git/**",
+      "package.json",
+      "package-lock.json",
+      "CLAUDE.md"
+    ],
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "/sw.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
   }
 }

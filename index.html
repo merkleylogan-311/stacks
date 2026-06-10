@@ -445,6 +445,81 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   color: var(--text2);
 }
 
+.custom-tag {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(230,104,60,0.15);
+  color: var(--accent-solid);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.custom-tag .tag-remove { cursor: pointer; font-size: 13px; line-height: 1; opacity: 0.6; }
+.custom-tag .tag-remove:hover { opacity: 1; }
+
+.add-tag-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--text3);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.add-tag-btn:hover { border-color: var(--accent-solid); color: var(--accent-solid); }
+
+/* Tag picker dropdown */
+.tag-picker { display: none; position: relative; width: 100%; margin-top: 8px; margin-bottom: 8px; }
+.tag-picker.open { display: block; }
+.tag-picker-inner {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.tag-picker-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-picker-option {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.tag-picker-option:hover { border-color: var(--accent-solid); color: var(--accent-solid); }
+.tag-picker-option.already-added { opacity: 0.3; pointer-events: none; }
+.tag-picker-custom { display: flex; gap: 6px; }
+.tag-picker-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.tag-picker-input:focus { border-color: var(--accent-solid); }
+.tag-picker-input::placeholder { color: var(--text3); }
+.tag-picker-add {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent-solid);
+  color: white;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .modal-description {
   font-size: 14px;
   line-height: 1.6;
@@ -1115,6 +1190,28 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
 .format-btn .fmt-icon { font-size: 16px; }
 
+/* Narration rating (audiobook only) */
+.narration-field { display: none; }
+.narration-field.visible { display: block; }
+.narration-btns { display: flex; gap: 8px; justify-content: center; }
+.narration-btn {
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text2);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px;
+  font-family: inherit;
+}
+.narration-btn span.label { font-size: 13px; }
+.narration-btn.active.up { border-color: var(--green); color: var(--green); background: rgba(74,222,128,0.1); }
+.narration-btn.active.down { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.1); }
+.read-meta-tag.narration-up { background: rgba(74,222,128,0.15); color: var(--green); }
+.read-meta-tag.narration-down { background: rgba(248,113,113,0.15); color: var(--red); }
+
 .rate-actions { display: flex; gap: 10px; margin-top: 4px; }
 
 .rate-btn {
@@ -1648,6 +1745,9 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
             <option value="3">★★★  3 Stars</option>
             <option value="low">★★  1–2 Stars</option>
           </select>
+          <select class="read-filter-select" id="readYearSelect" onchange="selectReadYear(this.value)">
+            <option value="all">All Years</option>
+          </select>
           <select class="read-filter-select" id="readGenreSelect" onchange="selectReadGenre(this.value)">
             <option value="all">All Genres</option>
             <option value="fiction">Fiction</option>
@@ -1755,6 +1855,15 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         <div class="detail-item"><span class="detail-label">Genre</span><span class="detail-value" id="modalGenre">—</span></div>
       </div>
       <div class="modal-subjects" id="modalSubjects"></div>
+      <div class="tag-picker" id="tagPicker">
+        <div class="tag-picker-inner">
+          <div class="tag-picker-options" id="tagPickerOptions"></div>
+          <div class="tag-picker-custom">
+            <input class="tag-picker-input" id="tagPickerInput" placeholder="Custom tag name..." type="text">
+            <button class="tag-picker-add" onclick="addCustomTagFromInput()">Add</button>
+          </div>
+        </div>
+      </div>
       <div class="modal-description" id="modalDesc"></div>
       <div class="narration-section" id="narrationSection" style="display:none;">
         <div class="narration-icon">🎧</div>
@@ -1800,6 +1909,13 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         <button class="format-btn" data-fmt="physical" onclick="selectFormat('physical')"><span class="fmt-icon">📕</span> Physical</button>
         <button class="format-btn" data-fmt="audiobook" onclick="selectFormat('audiobook')"><span class="fmt-icon">🎧</span> Audiobook</button>
         <button class="format-btn" data-fmt="ebook" onclick="selectFormat('ebook')"><span class="fmt-icon">📱</span> E-Book</button>
+      </div>
+    </div>
+    <div class="rate-field narration-field" id="narrationField">
+      <span class="rate-field-label">Narration</span>
+      <div class="narration-btns">
+        <button class="narration-btn up" onclick="setNarrationRating('up')" aria-label="Good narration">👍 <span class="label">Good</span></button>
+        <button class="narration-btn down" onclick="setNarrationRating('down')" aria-label="Bad narration">👎 <span class="label">Bad</span></button>
       </div>
     </div>
     <div class="rate-actions">
@@ -1976,11 +2092,18 @@ let currentCategory = 'all';
 let currentShelf = 'all';
 let currentReadRating = 'all';
 let currentReadGenre = 'all';
+let currentReadYear = 'all';
+// Custom-tag system: built-in genres plus user-added tags persisted per-profile.
+const BUILT_IN_GENRES = ['fiction','science_fiction','memoir','self-help','business','lds','religion','suspense','fantasy','history','non_fiction','technology'];
+const GENRE_DISPLAY = { fiction:'Fiction', science_fiction:'Sci-Fi', memoir:'Memoirs', 'self-help':'Self-Help', business:'Business', lds:'LDS', religion:'Religion', suspense:'Suspense', fantasy:'Fantasy', history:'History', non_fiction:'Non-Fiction', technology:'Technology' };
+let customTagsList = JSON.parse(localStorage.getItem(profileKey('custom_tags')) || '[]');
+function saveCustomTags() { localStorage.setItem(profileKey('custom_tags'), JSON.stringify(customTagsList)); }
 let seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
 let isFetching = false;
 let touchDeltaX = 0, isDragging = false;
 let pendingRating = 0;
 let pendingFormat = '';
+let pendingNarration = null; // 'up' | 'down' | null — only persisted when format is audiobook
 let editingBookKey = null; // null = marking new; non-null = editing existing read book
 let librarySelectMode = false;
 let librarySelected = new Set(); // book keys
@@ -2735,7 +2858,8 @@ async function showDetail(book) {
   document.getElementById('modalYear').textContent = book.first_publish_year || '—';
   document.getElementById('modalRating').textContent = book.ratings_average ? `★ ${book.ratings_average.toFixed(1)}` : '—';
   document.getElementById('modalGenre').textContent = (book._category || categorizeBook(book)).replace('_', ' ');
-  document.getElementById('modalSubjects').innerHTML = (book.subject || []).slice(0, 8).map(s => `<span class="subject-tag">${escHtml(s)}</span>`).join('');
+  renderModalTags(book);
+  document.getElementById('tagPicker').classList.remove('open');
 
   const descEl = document.getElementById('modalDesc');
   descEl.textContent = 'Loading description...';
@@ -2856,9 +2980,13 @@ function openRateModal(editKey = null) {
   document.getElementById('rateModalSubtitle').textContent = book.title;
   pendingRating = editKey ? (book._rating || 0) : 0;
   pendingFormat = editKey ? (book._format || '') : '';
+  pendingNarration = editKey ? (book._narrationRating || null) : null;
   updateRateStars(pendingRating);
   document.querySelectorAll('.format-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.fmt === pendingFormat));
+  document.querySelectorAll('.narration-btn').forEach(b =>
+    b.classList.toggle('active', !!pendingNarration && b.classList.contains(pendingNarration)));
+  document.getElementById('narrationField').classList.toggle('visible', pendingFormat === 'audiobook');
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('rateDateStartedInput').value =
     editKey ? (book._dateStarted || '') : today;
@@ -2916,6 +3044,13 @@ function updateRateStars(n) { document.querySelectorAll('#rateStars .star').forE
 function selectFormat(fmt) {
   pendingFormat = fmt;
   document.querySelectorAll('.format-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt === fmt));
+  document.getElementById('narrationField').classList.toggle('visible', fmt === 'audiobook');
+}
+
+function setNarrationRating(val) {
+  pendingNarration = pendingNarration === val ? null : val;
+  document.querySelectorAll('.narration-btn').forEach(b =>
+    b.classList.toggle('active', !!pendingNarration && b.classList.contains(pendingNarration)));
 }
 
 function confirmMarkRead() {
@@ -2931,6 +3066,7 @@ function confirmMarkRead() {
       const wasReading = rb._currentlyReading;
       rb._rating = pendingRating;
       rb._format = pendingFormat || rb._format || 'physical';
+      rb._narrationRating = rb._format === 'audiobook' ? pendingNarration : null;
       rb._dateStarted = dateStarted;
       rb._dateFinished = dateFinished;
       rb._dateRead = dateFinished; // keep legacy field in sync
@@ -2949,6 +3085,7 @@ function confirmMarkRead() {
   if (!book) return;
   const key = bookKey(book);
   if (!readBooks.some(r => bookKey(r) === key)) {
+    const fmt = pendingFormat || 'physical';
     readBooks.unshift({
       ...book,
       _rating: pendingRating,
@@ -2956,7 +3093,8 @@ function confirmMarkRead() {
       _dateStarted: dateStarted,
       _dateFinished: dateFinished,
       _dateRead: dateFinished, // legacy alias
-      _format: pendingFormat || 'physical',
+      _format: fmt,
+      _narrationRating: fmt === 'audiobook' ? pendingNarration : null,
       _category: book._category || categorizeBook(book)
     });
     saveReadBooks();
@@ -3068,6 +3206,9 @@ function renderReadList() {
   const emptyEl = document.getElementById('readEmpty');
   const countEl = document.getElementById('readCount');
 
+  // Keep the year dropdown in sync with currently-stored years before filtering.
+  populateYearFilter();
+
   let filtered = readBooks;
   // Rating filter
   if (currentReadRating === 'reading') {
@@ -3079,6 +3220,13 @@ function renderReadList() {
   // Genre filter
   if (currentReadGenre !== 'all') {
     filtered = filtered.filter(b => (b._category || categorizeBook(b)) === currentReadGenre);
+  }
+  // Year filter (uses _dateFinished, falls back to _dateRead for legacy entries)
+  if (currentReadYear !== 'all') {
+    filtered = filtered.filter(b => {
+      const d = b._dateFinished || b._dateRead || '';
+      return d.startsWith(currentReadYear);
+    });
   }
 
   countEl.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
@@ -3103,6 +3251,7 @@ function renderReadList() {
         ${starsOrBadge}
         <div class="read-item-meta">
           ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
+          ${!isReading && fmt === 'audiobook' && book._narrationRating ? `<span class="read-meta-tag narration-${book._narrationRating}">${book._narrationRating === 'up' ? '👍' : '👎'} Narration</span>` : ''}
           ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
         </div>
       </div>
@@ -3129,6 +3278,121 @@ function selectReadGenre(val) {
   currentReadGenre = val;
   document.getElementById('readGenreSelect').value = val;
   renderReadList();
+}
+
+function selectReadYear(val) {
+  currentReadYear = val;
+  document.getElementById('readYearSelect').value = val;
+  renderReadList();
+}
+
+function populateYearFilter() {
+  const years = new Set();
+  for (const book of readBooks) {
+    const d = book._dateFinished || book._dateRead || '';
+    if (d) { const y = d.substring(0, 4); if (y && y !== 'NaN') years.add(y); }
+  }
+  const sorted = [...years].sort((a, b) => b - a);
+  const sel = document.getElementById('readYearSelect');
+  if (!sel) return;
+  const current = sel.value || currentReadYear;
+  sel.innerHTML = '<option value="all">All Years</option>' +
+    sorted.map(y => `<option value="${y}"${y === current ? ' selected' : ''}>${y}</option>`).join('');
+  // If the previously-selected year disappeared (all books moved out), fall back to All.
+  if (current !== 'all' && !sorted.includes(current)) currentReadYear = 'all';
+}
+
+// ─── Custom tags ───
+function getAllTags() {
+  // Built-in genres + user custom tags, deduplicated.
+  const all = [...BUILT_IN_GENRES];
+  for (const t of customTagsList) { if (!all.includes(t)) all.push(t); }
+  return all;
+}
+function getBookCustomTags(book) { return book._customTags || []; }
+function tagDisplayName(tag) { return GENRE_DISPLAY[tag] || tag; }
+
+function renderModalTags(book) {
+  const subjectsEl = document.getElementById('modalSubjects');
+  if (!subjectsEl) return;
+  const customTags = getBookCustomTags(book);
+  const subjectHtml = (book.subject || []).slice(0, 8).map(s => `<span class="subject-tag">${escHtml(s)}</span>`).join('');
+  const customHtml = customTags.map(t =>
+    `<span class="custom-tag">${escHtml(tagDisplayName(t))}<span class="tag-remove" onclick="event.stopPropagation();removeTagFromBook('${escHtml(t)}')" aria-label="Remove tag">✕</span></span>`
+  ).join('');
+  const addBtn = `<button class="add-tag-btn" onclick="event.stopPropagation();toggleTagPicker()">+ Add Tag</button>`;
+  subjectsEl.innerHTML = subjectHtml + customHtml + addBtn;
+}
+
+function toggleTagPicker() {
+  const picker = document.getElementById('tagPicker');
+  const isOpen = picker.classList.toggle('open');
+  if (isOpen) renderTagPickerOptions();
+}
+
+function renderTagPickerOptions() {
+  const book = document.getElementById('detailModal')._book;
+  if (!book) return;
+  const currentTags = getBookCustomTags(book);
+  const allTags = getAllTags();
+  const optionsEl = document.getElementById('tagPickerOptions');
+  optionsEl.innerHTML = allTags.map(tag => {
+    const added = currentTags.includes(tag);
+    return `<button class="tag-picker-option${added ? ' already-added' : ''}" onclick="addTagToBook('${escHtml(tag)}')">${escHtml(tagDisplayName(tag))}${added ? ' ✓' : ''}</button>`;
+  }).join('');
+}
+
+function addTagToBook(tag) {
+  const book = document.getElementById('detailModal')._book;
+  if (!book) return;
+  if (!book._customTags) book._customTags = [];
+  if (book._customTags.includes(tag)) return;
+  book._customTags.push(tag);
+  // Add to global custom tags list if new.
+  if (!BUILT_IN_GENRES.includes(tag) && !customTagsList.includes(tag)) {
+    customTagsList.push(tag);
+    saveCustomTags();
+  }
+  persistBookTags(book);
+  renderModalTags(book);
+  renderTagPickerOptions();
+  refreshGenreFilters();
+}
+
+function removeTagFromBook(tag) {
+  const book = document.getElementById('detailModal')._book;
+  if (!book || !book._customTags) return;
+  book._customTags = book._customTags.filter(t => t !== tag);
+  persistBookTags(book);
+  renderModalTags(book);
+  renderTagPickerOptions();
+}
+
+function addCustomTagFromInput() {
+  const input = document.getElementById('tagPickerInput');
+  const tag = input.value.trim();
+  if (!tag) return;
+  input.value = '';
+  addTagToBook(tag);
+}
+
+function persistBookTags(book) {
+  const key = bookKey(book);
+  const saved = savedBooks.find(b => bookKey(b) === key);
+  if (saved) { saved._customTags = book._customTags; saveSavedBooks(); }
+  const read = readBooks.find(b => bookKey(b) === key);
+  if (read) { read._customTags = book._customTags; saveReadBooks(); }
+}
+
+function refreshGenreFilters() {
+  // Rebuild Library + Read genre <select> dropdowns from the union of built-ins + custom tags.
+  for (const id of ['libraryGenreSelect', 'readGenreSelect']) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="all">All Genres</option>' +
+      getAllTags().map(t => `<option value="${escHtml(t)}"${t === prev ? ' selected' : ''}>${escHtml(tagDisplayName(t))}</option>`).join('');
+  }
 }
 
 // ─── Search ───
@@ -3668,6 +3932,13 @@ async function init() {
   if (_appInited) return;
   _appInited = true;
   updateProfileAvatar();
+  refreshGenreFilters(); // Surface any saved custom tags in the Library/Read genre dropdowns.
+  // Enter-to-add inside the tag picker — done here (not at script load) so the input exists.
+  const tpi = document.getElementById('tagPickerInput');
+  if (tpi && !tpi._wired) {
+    tpi._wired = true;
+    tpi.addEventListener('keydown', e => { if (e.key === 'Enter') addCustomTagFromInput(); });
+  }
   initQueue();
   await loadNextBooks(5);
   renderCards();

@@ -53,12 +53,32 @@ python3 -m http.server 8080
 
 ## Deployment
 
-The app is hosted on **GitHub Pages**, served from the `main` branch — live at
-https://merkleylogan-311.github.io/stacks/. There is no build or CI step: any commit
-pushed to `main` goes live to all users automatically. There is no staging environment.
+Two deployment paths are configured. There is no build or CI step in either; any
+asset change must be paired with a `CACHE_NAME` bump in `sw.js` or returning users
+will keep serving stale cached files.
 
-Bump the cache version in `sw.js` when deploying asset changes, or returning users
-may keep serving stale cached files.
+**GitHub Pages (currently live):** served from the `main` branch at
+https://merkleylogan-311.github.io/stacks/. Pushing to `main` deploys to all users.
+There is no staging environment.
 
-The Firebase backend (`stacks-7fbea`) is managed separately via the Firebase console —
-it is not deployed from this repo.
+**Firebase Hosting (configured, not yet deployed):** `firebase.json` includes a
+hosting block targeting the `stacks-7fbea` project. To deploy:
+
+```sh
+~/bin/firebase deploy --only hosting
+```
+
+This would publish to `https://stacks-7fbea.web.app/` — a different URL than the
+GitHub Pages site. Running both simultaneously means users on the old URL keep
+hitting GitHub Pages; only new shares of the Firebase URL go there. Pick one as
+canonical (e.g. update PWA manifest + shared URLs) before fully switching.
+
+**Firestore rules** are deployed separately with:
+
+```sh
+~/bin/firebase deploy --only firestore:rules
+```
+
+The Firebase backend itself (Auth providers, Firestore database creation) is
+managed via the Firebase console — only rules and hosting are deployable from
+this repo.
