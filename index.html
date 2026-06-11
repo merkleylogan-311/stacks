@@ -1707,6 +1707,11 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <button class="cat-pill" data-cat="self-help" onclick="selectCategory('self-help')">Self-Help</button>
     <button class="cat-pill" data-cat="business" onclick="selectCategory('business')">Business</button>
     <button class="cat-pill" data-cat="lds" onclick="selectCategory('lds')">LDS</button>
+    <button class="cat-pill" data-cat="religion" onclick="selectCategory('religion')">Religion</button>
+    <button class="cat-pill" data-cat="suspense" onclick="selectCategory('suspense')">Suspense</button>
+    <button class="cat-pill" data-cat="fantasy" onclick="selectCategory('fantasy')">Fantasy</button>
+    <button class="cat-pill" data-cat="history" onclick="selectCategory('history')">History</button>
+    <button class="cat-pill" data-cat="non_fiction" onclick="selectCategory('non_fiction')">Non-Fiction</button>
     <button class="cat-pill" data-cat="new_releases" onclick="selectCategory('new_releases')">New Releases</button>
     <button class="cat-pill" data-cat="technology" onclick="selectCategory('technology')">Technology</button>
   </div>
@@ -2293,8 +2298,12 @@ function isOriginalBook(book) {
 // active category genuinely contains those books.
 const CATEGORY_BAD_CAT_EXEMPTIONS = {
   'lds': ['religion'],
+  'religion': ['religion'],
   'self-help': ['psychology', 'body, mind & spirit'],
-  'memoir': ['psychology']
+  'memoir': ['psychology'],
+  'history': ['history'],
+  'technology': ['computers', 'technology & engineering'],
+  'non_fiction': ['history', 'philosophy', 'psychology', 'political science', 'social science', 'science']
 };
 
 // Check if a book is already saved, read, or swiped on
@@ -2450,6 +2459,66 @@ const CURATED = {
     "the+article+of+faith+talmage", "drawing+heaven+into+your+marriage",
     "covenant+hearts+william+dyer", "the+second+comforter+denver+snuffer",
     "to+draw+closer+to+god+henry+eyring", "arms+of+his+love+conference"
+  ],
+  religion: [
+    "mere+christianity+cs+lewis", "the+screwtape+letters+lewis",
+    "the+case+for+christ+strobel", "purpose+driven+life+warren",
+    "the+cost+of+discipleship+bonhoeffer", "confessions+augustine",
+    "the+seven+storey+mountain+merton", "the+pursuit+of+god+tozer",
+    "jesus+the+christ+talmage", "the+hiding+place+corrie+ten+boom",
+    "celebration+of+discipline+foster", "knowing+god+packer",
+    "desiring+god+john+piper", "radical+david+platt",
+    "the+return+of+the+prodigal+son+nouwen", "the+reason+for+god+keller",
+    "crazy+love+francis+chan", "rediscovering+church",
+    "the+pilgrim+progress+bunyan", "surprised+by+joy+lewis"
+  ],
+  suspense: [
+    "gone+girl+gillian+flynn", "the+girl+on+the+train+paula+hawkins",
+    "the+silent+patient+alex+michaelides", "before+i+go+to+sleep+watson",
+    "the+woman+in+the+window+finn", "big+little+lies+liane+moriarty",
+    "in+the+woods+tana+french", "dark+places+gillian+flynn",
+    "the+couple+next+door+shari+lapena", "the+chain+adrian+mckinty",
+    "the+maid+nita+prose", "verity+colleen+hoover",
+    "the+last+thing+he+told+me+dave", "the+it+girl+ruth+ware",
+    "the+sanatorium+sarah+pearse", "the+hunting+party+lucy+foley",
+    "the+guest+list+lucy+foley", "mexican+gothic+silvia+moreno+garcia",
+    "rock+paper+scissors+alice+feeney", "the+push+ashley+audrain"
+  ],
+  fantasy: [
+    "the+name+of+the+wind+rothfuss", "the+way+of+kings+sanderson",
+    "the+hobbit+tolkien", "the+fellowship+of+the+ring+tolkien",
+    "a+game+of+thrones+george+martin", "the+lies+of+locke+lamora+lynch",
+    "mistborn+the+final+empire+sanderson", "the+priory+of+the+orange+tree",
+    "the+fifth+season+jemisin", "assassins+apprentice+robin+hobb",
+    "the+blade+itself+joe+abercrombie", "spinning+silver+naomi+novik",
+    "piranesi+susanna+clarke", "circe+madeline+miller",
+    "the+house+in+the+cerulean+sea", "ninth+house+leigh+bardugo",
+    "jonathan+strange+and+mr+norrell", "the+poppy+war+rf+kuang",
+    "a+wizard+of+earthsea+le+guin", "the+night+circus+erin+morgenstern"
+  ],
+  history: [
+    "sapiens+yuval+noah+harari", "guns+germs+and+steel+jared+diamond",
+    "the+rise+and+fall+of+the+third+reich+shirer", "team+of+rivals+doris+kearns+goodwin",
+    "the+silk+roads+peter+frankopan", "1776+david+mccullough",
+    "a+peoples+history+of+the+united+states+zinn", "the+warmth+of+other+suns+wilkerson",
+    "the+wright+brothers+mccullough", "unbroken+laura+hillenbrand",
+    "the+devil+in+the+white+city+larson", "empire+of+the+summer+moon+gwynne",
+    "the+splendid+and+the+vile+erik+larson", "the+immortal+life+of+henrietta+lacks",
+    "dead+wake+erik+larson", "salt+a+world+history+kurlansky",
+    "the+color+of+law+richard+rothstein", "say+nothing+patrick+radden+keefe",
+    "the+order+of+time+carlo+rovelli", "pirate+hunters+robert+kurson"
+  ],
+  non_fiction: [
+    "outliers+malcolm+gladwell", "freakonomics+levitt+dubner",
+    "quiet+susan+cain", "the+tipping+point+gladwell",
+    "talking+to+strangers+gladwell", "bad+blood+john+carreyrou",
+    "the+emperor+of+all+maladies+mukherjee", "stiff+mary+roach",
+    "in+cold+blood+truman+capote", "the+sixth+extinction+elizabeth+kolbert",
+    "born+to+run+christopher+mcdougall", "the+power+of+habit+charles+duhigg",
+    "range+david+epstein", "breath+james+nestor",
+    "four+thousand+weeks+oliver+burkeman", "the+body+bill+bryson",
+    "a+short+history+of+nearly+everything+bryson", "caste+isabel+wilkerson",
+    "empire+of+pain+patrick+radden+keefe", "hidden+figures+margot+lee+shetterly"
   ],
   technology: [
     "the+pragmatic+programmer", "clean+code+robert+martin",
