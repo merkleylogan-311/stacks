@@ -2158,6 +2158,11 @@ const GENRE_DISPLAY = { fiction:'Fiction', science_fiction:'Sci-Fi', memoir:'Mem
 let customTagsList = JSON.parse(localStorage.getItem(profileKey('custom_tags')) || '[]');
 function saveCustomTags() { localStorage.setItem(profileKey('custom_tags'), JSON.stringify(customTagsList)); }
 let seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
+// Passed books — a capped record of what was swiped left, kept WITH titles/subjects
+// (seenKeys only stores opaque keys) so the recommender can learn from rejections.
+const PASSED_CAP = 200;
+let passedBooks = JSON.parse(localStorage.getItem(profileKey('passed')) || '[]');
+function savePassedBooks() { localStorage.setItem(profileKey('passed'), JSON.stringify(passedBooks)); scheduleFirestoreSave(); }
 let isFetching = false;
 let touchDeltaX = 0, isDragging = false;
 let pendingRating = 0;
@@ -2741,12 +2746,33 @@ function getRecommendationQueries() {
     }
   }
 
-  // Author queries
-  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,5)) queries.push({ query: a, category: null });
+  // Build penalty maps from passed books so we steer away from what was rejected.
+  // Authors/subjects you reject repeatedly get dampened or dropped from query selection.
+  const passedAuthors = {}, passedSubjects = {};
+  for (const book of passedBooks) {
+    for (const a of (book.author_name || [])) passedAuthors[(a || '').toLowerCase()] = (passedAuthors[(a || '').toLowerCase()] || 0) + 1;
+    for (const s of (book.subject || [])) {
+      const sl = (s || '').toLowerCase();
+      if (sl.length > 3) passedSubjects[sl] = (passedSubjects[sl] || 0) + 1;
+    }
+  }
+  // An author/subject is "disliked" if you passed on it AND it isn't also a favorite,
+  // or if rejections clearly outweigh the positive signal.
+  const authorDisliked = (a) => { const p = passedAuthors[(a || '').toLowerCase()] || 0; return p >= 2 && p > (favAuthors[a] || 0); };
+  const subjectDisliked = (s) => { const p = passedSubjects[(s || '').toLowerCase()] || 0; return p >= 3 && p > (favSubjects[s] || 0) * 2; };
+
+  // Author queries (skip authors you keep passing on)
+  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,6)) {
+    if (!authorDisliked(a)) queries.push({ query: a, category: null });
+  }
   // Extra author queries (e.g. "author novel") for variety
-  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,3)) queries.push({ query: `${a} novel`, category: null });
-  // Subject queries
-  for (const [s] of Object.entries(favSubjects).sort((a,b) => b[1]-a[1]).slice(0,10)) queries.push({ query: s, category: null });
+  for (const [a] of Object.entries(favAuthors).sort((a,b) => b[1]-a[1]).slice(0,3)) {
+    if (!authorDisliked(a)) queries.push({ query: `${a} novel`, category: null });
+  }
+  // Subject queries (skip subjects you keep passing on)
+  for (const [s] of Object.entries(favSubjects).sort((a,b) => b[1]-a[1]).slice(0,12)) {
+    if (!subjectDisliked(s)) queries.push({ query: s, category: null });
+  }
   // "Similar to [title]" queries for top-rated books
   for (const book of shuffleArray(highRated).slice(0, 5)) {
     queries.push({ query: `books similar to ${book.title}`, category: null });
@@ -3146,7 +3172,19 @@ function processSwipe(dir) {
   if (dir === 'right') {
     if (!savedBooks.some(b => bookKey(b) === key)) { savedBooks.unshift({ ...book, savedAt: Date.now() }); saveSavedBooks(); }
     stats.saved++; showToast(`Saved "${book.title}"`);
-  } else { stats.passed++; showToast(`Passed on "${book.title}"`); }
+  } else {
+    stats.passed++; showToast(`Passed on "${book.title}"`);
+    // Record a slim snapshot so the recommender can down-weight rejections.
+    passedBooks.unshift({
+      key, title: book.title,
+      author_name: (book.author_name || []).slice(0, 2),
+      subject: (book.subject || []).slice(0, 4),
+      _category: book._category || categorizeBook(book),
+      passedAt: Date.now()
+    });
+    if (passedBooks.length > PASSED_CAP) passedBooks = passedBooks.slice(0, PASSED_CAP);
+    savePassedBooks();
+  }
   stats.swiped++;
   const cat = book._category || categorizeBook(book);
   stats.genres[cat] = (stats.genres[cat] || 0) + 1;
@@ -3161,7 +3199,7 @@ function undoSwipe() {
   const key = bookKey(last.book);
   seenKeys.delete(key); seenKeys.delete(titleKey(last.book)); saveSeenKeys();
   if (last.direction === 'right') { savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks(); stats.saved--; }
-  else stats.passed--;
+  else { stats.passed--; passedBooks = passedBooks.filter(b => b.key !== key); savePassedBooks(); }
   stats.swiped--;
   const cat = last.book._category || categorizeBook(last.book);
   stats.genres[cat] = Math.max(0, (stats.genres[cat] || 0) - 1);
@@ -4313,6 +4351,7 @@ async function pushToFirestore() {
       read: readBooks,
       stats,
       seen: [...seenKeys],
+      passed: passedBooks,
       customPhotoURL: _customPhotoURL || null,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -4354,12 +4393,14 @@ async function loadFromFirestore() {
       readBooks = d.read || [];
       stats = d.stats || { swiped:0, saved:0, passed:0, read:0, genres:{} };
       seenKeys = new Set(d.seen || []);
+      passedBooks = d.passed || [];
       _customPhotoURL = d.customPhotoURL || null;
       // Cache locally for offline use
       localStorage.setItem(profileKey('saved'), JSON.stringify(savedBooks));
       localStorage.setItem(profileKey('read'), JSON.stringify(readBooks));
       localStorage.setItem(profileKey('stats'), JSON.stringify(stats));
       localStorage.setItem(profileKey('seen'), JSON.stringify([...seenKeys]));
+      localStorage.setItem(profileKey('passed'), JSON.stringify(passedBooks));
       // Migrate: rewrite to private subdoc, then null out legacy fields on parent.
       if (fromLegacy) {
         await pushToFirestore();
@@ -4441,6 +4482,7 @@ function reloadStateFromLocalStorage() {
   stats = JSON.parse(localStorage.getItem(profileKey('stats')) || '{"swiped":0,"saved":0,"passed":0,"read":0,"genres":{},"yearlyGoal":0}');
   if (typeof stats.yearlyGoal !== 'number') stats.yearlyGoal = 0;
   seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
+  passedBooks = JSON.parse(localStorage.getItem(profileKey('passed')) || '[]');
   swipeHistory = []; currentBooks = [];
 }
 
