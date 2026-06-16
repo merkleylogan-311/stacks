@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-functions-compat.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -355,6 +356,13 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 
 .empty-state .emoji { font-size: 40px; margin-bottom: 4px; }
+.empty-refresh-btn {
+  margin-top: 14px; padding: 10px 18px; border-radius: 12px;
+  border: 1px solid var(--accent-solid); background: none;
+  color: var(--accent-solid); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: background 0.15s;
+}
+.empty-refresh-btn:hover { background: rgba(230,104,60,0.1); }
 .empty-state h3 { color: var(--text); font-size: 17px; font-weight: 700; }
 
 /* ── Detail Modal ── */
@@ -2105,7 +2113,7 @@ const FIREBASE_CONFIG = {
 };
 
 const FIREBASE_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith('REPLACE');
-let _fbAuth = null, _fbDb = null, currentUser = null, _guestMode = false, _appInited = false;
+let _fbAuth = null, _fbDb = null, _fbFunctions = null, currentUser = null, _guestMode = false, _appInited = false;
 let _customPhotoURL = null;
 let _authMode = 'signin'; // 'signin' | 'signup'
 
@@ -2114,6 +2122,7 @@ if (FIREBASE_CONFIGURED) {
     firebase.initializeApp(FIREBASE_CONFIG);
     _fbAuth = firebase.auth();
     _fbDb = firebase.firestore();
+    try { _fbFunctions = firebase.functions(); } catch(e) { console.warn('Functions SDK unavailable:', e); }
   } catch(e) { console.warn('Firebase init failed:', e); }
 }
 
@@ -2787,22 +2796,36 @@ function getRecommendationQueries() {
 async function loadForYouBooks(count = 5) {
   if (isFetching) return;
   isFetching = true;
-  const queries = getRecommendationQueries();
-  if (queries.length === 0) { isFetching = false; return; }
+  // Kick off (or refresh) the AI recommender in the background — non-blocking.
+  // It updates _agentRecQueue when it returns; meanwhile we serve what we have.
+  maybeRefreshAgentRecs();
+
   let successes = 0;
+  // Build the candidate query list: AI recommendations first (each a
+  // "Title Author" query the existing pipeline verifies against Google Books,
+  // so hallucinated titles simply fail to hydrate and drop out), then the
+  // heuristic queries as a backfill so the deck never starves.
+  const agentItems = _agentRecQueue
+    .slice(_agentRecIndex)
+    .map(r => ({ query: `${r.title} ${r.author || ''}`.trim(), category: null, _agent: true }));
+  const queries = agentItems.concat(getRecommendationQueries());
+  if (queries.length === 0) { isFetching = false; return; }
+
   let qi = 0;
   let rounds = 0;
-  const maxRounds = 3;
+  const maxRounds = 4;
   while (successes < count && qi < queries.length && rounds < maxRounds) {
     rounds++;
     const batchSize = Math.min(count - successes + 2, queries.length - qi);
     const promises = [];
     for (let i = 0; i < batchSize && qi < queries.length; i++) {
       const item = queries[qi++];
+      if (item._agent) _agentRecIndex++; // advance through the AI queue as we consume it
       promises.push(fetchBookByQuery(item.query).then(book => {
         if (book && !isAlreadyKnown(book)) {
           book._category = item.category || categorizeBook(book);
           book._forYou = true;
+          if (item._agent) book._aiPick = true;
           return book;
         }
         return null;
@@ -2814,6 +2837,81 @@ async function loadForYouBooks(count = 5) {
   }
   isFetching = false;
   rerenderIfDeckWasEmpty();
+}
+
+// ─── AI recommendations (Layer 2 — Cloud Function + Claude Haiku 4.5) ───
+let _agentRecQueue = JSON.parse(localStorage.getItem(profileKey('ai_recs')) || '[]');
+let _agentRecIndex = 0;
+let _agentRecMeta = JSON.parse(localStorage.getItem(profileKey('ai_recs_meta')) || '{}');
+let _agentRecsInFlight = false;
+const AI_RECS_TTL = 24 * 60 * 60 * 1000; // refresh at most once a day unless signals change
+
+// A cheap signature of the taste signals — when it changes meaningfully, regenerate.
+function tasteSignature() {
+  const hi = readBooks.filter(b => (b._rating || 0) >= 4).length;
+  const rd = readBooks.length;
+  const sv = savedBooks.length;
+  const ps = passedBooks.length;
+  return `${hi}-${rd}-${sv}-${ps}`;
+}
+
+function buildTasteProfile() {
+  const slim = (b) => ({ title: b.title, author: (b.author_name || [])[0] || '', rating: b._rating });
+  const liked = readBooks.filter(b => (b._rating || 0) >= 4).map(slim);
+  const recent = [...readBooks]
+    .filter(b => b._dateFinished || b._dateRead)
+    .sort((a, b) => (b._dateFinished || b._dateRead || '').localeCompare(a._dateFinished || a._dateRead || ''))
+    .slice(0, 20).map(slim);
+  const saved = savedBooks.slice(0, 40).map(b => ({ title: b.title, author: (b.author_name || [])[0] || '' }));
+  const passed = passedBooks.slice(0, 40).map(b => ({ title: b.title, author: (b.author_name || [])[0] || '' }));
+  // Titles to never recommend — everything already saved or read.
+  const exclude = [...savedBooks, ...readBooks].slice(0, 400).map(b => ({ title: b.title }));
+  return { liked, recent, saved, passed, exclude };
+}
+
+// Decide whether to (re)generate AI recs, and do it in the background if so.
+async function maybeRefreshAgentRecs(force = false) {
+  if (!currentUser || !_fbFunctions) return;     // signed-in only; needs Functions SDK
+  if (_agentRecsInFlight) return;
+  if (!hasRatedBooks() && savedBooks.length === 0) return; // nothing to personalize from yet
+  const sig = tasteSignature();
+  const fresh = _agentRecMeta.generatedAt && (Date.now() - _agentRecMeta.generatedAt < AI_RECS_TTL);
+  const sameSignals = _agentRecMeta.signature === sig;
+  const haveUnused = _agentRecIndex < _agentRecQueue.length;
+  if (!force && fresh && sameSignals && haveUnused) return; // cache still good
+
+  _agentRecsInFlight = true;
+  try {
+    const callable = _fbFunctions.httpsCallable('recommendBooks');
+    const res = await callable({ profile: buildTasteProfile() });
+    const recs = (res && res.data && Array.isArray(res.data.recommendations)) ? res.data.recommendations : [];
+    if (recs.length) {
+      // Drop any the user already knows; keep title/author for hydration.
+      _agentRecQueue = recs.filter(r => r && r.title);
+      _agentRecIndex = 0;
+      _agentRecMeta = { generatedAt: Date.now(), signature: sig };
+      localStorage.setItem(profileKey('ai_recs'), JSON.stringify(_agentRecQueue));
+      localStorage.setItem(profileKey('ai_recs_meta'), JSON.stringify(_agentRecMeta));
+      // If For You is open and waiting, fold the new picks in immediately.
+      if (currentCategory === 'for-you') {
+        loadNextBooks(5).then(() => rerenderIfDeckWasEmpty());
+      }
+    }
+  } catch (e) {
+    // resource-exhausted (throttle) is expected and silent; surface real errors quietly.
+    if (e && e.code && e.code !== 'functions/resource-exhausted') {
+      console.warn('AI recommendations failed:', e.code || e.message);
+    }
+  } finally {
+    _agentRecsInFlight = false;
+  }
+}
+
+// Manual "refresh my recommendations" — bypasses the cache (still server-throttled).
+function refreshAiRecs() {
+  if (!currentUser) { showToast('Sign in for AI recommendations'); return; }
+  showToast('Refreshing recommendations…');
+  maybeRefreshAgentRecs(true);
 }
 
 // ─── NYT Books API ───
@@ -3072,7 +3170,8 @@ function renderCards() {
     if (currentCategory === 'for-you' && !hasRatedBooks())
       empty.innerHTML = '<div class="emoji">📖</div><h3>Rate some books first</h3><p>Mark books as read and rate them to get personalized recommendations</p>';
     else if (currentCategory === 'for-you')
-      empty.innerHTML = '<div class="emoji">✨</div><h3>No more recommendations</h3><p>Rate more books to discover new ones</p>';
+      empty.innerHTML = '<div class="emoji">✨</div><h3>No more recommendations</h3><p>Rate more books to discover new ones</p>'
+        + (currentUser && _fbFunctions ? '<button class="empty-refresh-btn" onclick="refreshAiRecs()">↻ Refresh recommendations</button>' : '');
     else
       empty.innerHTML = '<div class="emoji">📚</div><h3>No more books!</h3><p>Switch categories or search to find more</p>';
     return;
@@ -4483,6 +4582,10 @@ function reloadStateFromLocalStorage() {
   if (typeof stats.yearlyGoal !== 'number') stats.yearlyGoal = 0;
   seenKeys = new Set(JSON.parse(localStorage.getItem(profileKey('seen')) || '[]'));
   passedBooks = JSON.parse(localStorage.getItem(profileKey('passed')) || '[]');
+  // AI recommendation cache is per-profile — reload it too so recs don't leak across accounts.
+  _agentRecQueue = JSON.parse(localStorage.getItem(profileKey('ai_recs')) || '[]');
+  _agentRecMeta = JSON.parse(localStorage.getItem(profileKey('ai_recs_meta')) || '{}');
+  _agentRecIndex = 0;
   swipeHistory = []; currentBooks = [];
 }
 
