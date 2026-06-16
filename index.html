@@ -977,11 +977,12 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
 .search-screen h2 { font-size: 21px; font-weight: 800; margin-bottom: 4px; }
 
-.search-bar { display: flex; gap: 8px; position: relative; }
+.search-bar { display: flex; gap: 8px; align-items: stretch; }
+.search-input-wrap { position: relative; flex: 1; display: flex; }
 
 .search-clear {
   position: absolute;
-  right: 90px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   width: 22px; height: 22px;
@@ -1001,7 +1002,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
 .search-input {
   flex: 1;
-  padding: 11px 14px;
+  padding: 11px 40px 11px 14px; /* right padding leaves room for the clear (✕) button */
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1134,10 +1135,23 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   font-size: 34px;
   cursor: pointer;
   color: var(--surface3);
-  transition: color 0.15s, transform 0.15s;
+  transition: transform 0.15s;
+  position: relative;
+  display: inline-block;
+  line-height: 1;
 }
-
-.rate-stars .star.filled { color: var(--yellow); }
+/* Gold fill overlay, width-clipped to 0 / 50% / 100% for empty / half / full. */
+.rate-stars .star .star-fill {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0;
+  overflow: hidden;
+  color: var(--yellow);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rate-stars .star.half .star-fill { width: 50%; }
+.rate-stars .star.full .star-fill { width: 100%; }
 .rate-stars .star:hover { transform: scale(1.15); }
 
 /* Date picker and format selector */
@@ -1219,6 +1233,16 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .narration-btn.active.down { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.1); }
 .read-meta-tag.narration-up { background: rgba(74,222,128,0.15); color: var(--green); }
 .read-meta-tag.narration-down { background: rgba(248,113,113,0.15); color: var(--red); }
+.read-meta-tag.dnf { background: rgba(250,204,21,0.15); color: var(--yellow); }
+
+/* DNF toggle in the rate modal */
+.dnf-btn {
+  width: 100%; padding: 11px; border-radius: 12px;
+  border: 1px solid var(--border); background: none;
+  color: var(--text2); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all 0.15s;
+}
+.dnf-btn.active { border-color: var(--yellow); color: var(--yellow); background: rgba(250,204,21,0.1); }
 
 /* Content warnings */
 .content-warnings-field { margin-bottom: 14px; text-align: left; }
@@ -1806,8 +1830,10 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
       <div class="search-screen">
         <h2>Search</h2>
         <div class="search-bar">
-          <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search">
-          <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
+          <div class="search-input-wrap">
+            <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search">
+            <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
+          </div>
           <button class="search-go" onclick="doSearch()">Search</button>
         </div>
         <div class="search-results" id="searchResults"></div>
@@ -1855,11 +1881,8 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
           </div>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><span class="stat-number gradient" id="statSwiped">0</span><span class="stat-label">Books swiped</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statSaved">0</span><span class="stat-label">Books saved</span></div>
-          <div class="stat-card"><span class="stat-number gradient" id="statPassed">0</span><span class="stat-label">Books passed</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statRead">0</span><span class="stat-label">Books read</span></div>
-          <div class="stat-card"><span class="stat-number gradient" id="statRate">0%</span><span class="stat-label">Save rate</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statAvgRating">—</span><span class="stat-label">Avg rating</span></div>
         </div>
         <div class="genre-breakdown"><h3>Genre Breakdown</h3><div class="genre-bar-container" id="genreBars"></div></div>
@@ -1925,20 +1948,23 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   <div class="rate-modal" onclick="event.stopPropagation()">
     <h3 id="rateModalTitle">Rate this book</h3>
     <div class="rate-subtitle" id="rateModalSubtitle"></div>
-    <div class="rate-stars" id="rateStars" role="group" aria-label="Rating">
-      <span class="star" role="button" tabindex="0" aria-label="1 star" onclick="setRating(1)">★</span>
-      <span class="star" role="button" tabindex="0" aria-label="2 stars" onclick="setRating(2)">★</span>
-      <span class="star" role="button" tabindex="0" aria-label="3 stars" onclick="setRating(3)">★</span>
-      <span class="star" role="button" tabindex="0" aria-label="4 stars" onclick="setRating(4)">★</span>
-      <span class="star" role="button" tabindex="0" aria-label="5 stars" onclick="setRating(5)">★</span>
+    <div class="rate-stars" id="rateStars" role="group" aria-label="Rating (tap left half of a star for a half rating)">
+      <span class="star" role="button" tabindex="0" aria-label="1 star" onclick="setRatingFromClick(event,1)">★<span class="star-fill">★</span></span>
+      <span class="star" role="button" tabindex="0" aria-label="2 stars" onclick="setRatingFromClick(event,2)">★<span class="star-fill">★</span></span>
+      <span class="star" role="button" tabindex="0" aria-label="3 stars" onclick="setRatingFromClick(event,3)">★<span class="star-fill">★</span></span>
+      <span class="star" role="button" tabindex="0" aria-label="4 stars" onclick="setRatingFromClick(event,4)">★<span class="star-fill">★</span></span>
+      <span class="star" role="button" tabindex="0" aria-label="5 stars" onclick="setRatingFromClick(event,5)">★<span class="star-fill">★</span></span>
     </div>
     <div class="rate-field">
       <span class="rate-field-label">Started</span>
       <input type="date" class="rate-date-input" id="rateDateStartedInput">
     </div>
     <div class="rate-field">
-      <span class="rate-field-label">Finished</span>
+      <span class="rate-field-label" id="rateFinishedLabel">Finished</span>
       <input type="date" class="rate-date-input" id="rateDateFinishedInput">
+    </div>
+    <div class="rate-field">
+      <button class="dnf-btn" id="dnfBtn" onclick="toggleDNF()" aria-pressed="false">Didn't finish (DNF)</button>
     </div>
     <div class="rate-field">
       <span class="rate-field-label">Format</span>
@@ -2178,6 +2204,7 @@ let pendingRating = 0;
 let pendingFormat = '';
 let pendingNarration = null; // 'up' | 'down' | null — only persisted when format is audiobook
 let pendingContentWarnings = { language: 'none', sexuality: 'none', violence: 'none' };
+let pendingDNF = false; // did-not-finish — rated + logged, but excluded from the yearly goal
 let editingBookKey = null; // null = marking new; non-null = editing existing read book
 let librarySelectMode = false;
 let librarySelected = new Set(); // book keys
@@ -2254,10 +2281,11 @@ function isOriginalBook(book) {
     }
   }
 
-  // Quality gate: prefer well-known, highly-rated books
+  // Quality gate: prefer well-known, highly-rated books. Popularity is a strong
+  // proxy for a professionally-designed cover, so the bar is deliberately a bit high.
   const rc = book.ratings_count || 0;
   const ra = book.ratings_average || 0;
-  if (rc > 0 && rc < 3) return false;          // too few ratings = likely obscure
+  if (rc > 0 && rc < 5) return false;          // too few ratings = obscure / likely amateur cover
   if (rc >= 10 && ra < 3.0) return false;      // enough data to know it's poorly rated
   if (rc >= 30 && ra < 3.3) return false;      // below average
   if (rc >= 100 && ra < 3.5) return false;     // popular but mediocre
@@ -2269,6 +2297,21 @@ function isOriginalBook(book) {
     'bright summaries','bookcaps','instaread','wikipedians','grin verlag','grin publishing',
     'independently published','createspace'];
   for (const b of bad) { if (authors.includes(b)) return false; }
+
+  // Academic / textbook publishers — these put out research monographs and
+  // textbooks with utilitarian covers. Exclude them from discovery.
+  const ACADEMIC_PUBLISHERS = [
+    'springer','wiley','elsevier','routledge','palgrave','mcgraw-hill','mcgraw hill',
+    'pearson','academic press','taylor & francis','taylor and francis','sage publications',
+    'crc press','ieee','wolters kluwer','thieme','o\'reilly','packt','apress',
+    'cengage','de gruyter','brill','university press','cambridge university','oxford university'
+  ];
+  const pub = (book._publisher || '').toLowerCase();
+  if (pub) { for (const p of ACADEMIC_PUBLISHERS) { if (pub.includes(p)) return false; } }
+
+  // Strongly-academic title shapes (textbooks / research) not already caught above.
+  if (/\b\d+(st|nd|rd|th)\s+edition\b/i.test(title)) return false;
+  if (/\b(introduction to|fundamentals of|principles of|foundations of)\b/i.test(title) && rc < 500) return false;
 
   // Detect derivative / knockoff books: title references a famous person's name
   // but the actual author is someone else (e.g. "Simon Sinek's Start with Why Theory" by Marcellus Grey)
@@ -2596,6 +2639,12 @@ function normalizeGBook(vol) {
   const thumb = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || '';
   // Covers with edge=curl have real embedded images; others are often placeholders
   const hasRealCover = thumb.includes('edge=curl') || thumb.includes('img=1&zoom=1&edge');
+  // Bump the requested resolution: zoom=1 is a small thumbnail; zoom=0 returns the
+  // largest cover Google has. Also drop edge=curl so there's no page-fold graphic.
+  const hiResCover = thumb
+    .replace('http://', 'https://')
+    .replace(/&zoom=\d/, '&zoom=0')
+    .replace('&edge=curl', '');
   return {
     key: vol.id,
     title: vi.title || '',
@@ -2605,10 +2654,11 @@ function normalizeGBook(vol) {
     subject: (vi.categories || []),
     ratings_average: vi.averageRating || null,
     ratings_count: vi.ratingsCount || 0,
-    _coverUrl: thumb.replace('http://', 'https://'),
+    _coverUrl: hiResCover,
     _hasRealCover: hasRealCover,
     _publicDomain: ai.publicDomain === true,
     _description: vi.description || '',
+    _publisher: vi.publisher || '',
     language: vi.language ? [vi.language] : [],
     isbn: isbns
   };
@@ -3443,6 +3493,11 @@ function openRateModal(editKey = null) {
   pendingContentWarnings = (editKey && book._contentWarnings)
     ? { language: 'none', sexuality: 'none', violence: 'none', ...book._contentWarnings }
     : { language: 'none', sexuality: 'none', violence: 'none' };
+  pendingDNF = editKey ? !!book._dnf : false;
+  const dnfBtn = document.getElementById('dnfBtn');
+  dnfBtn.classList.toggle('active', pendingDNF);
+  dnfBtn.setAttribute('aria-pressed', pendingDNF ? 'true' : 'false');
+  document.getElementById('rateFinishedLabel').textContent = pendingDNF ? 'Stopped' : 'Finished';
   updateRateStars(pendingRating);
   document.querySelectorAll('.format-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.fmt === pendingFormat));
@@ -3499,14 +3554,28 @@ function removeFromDeck(key) {
 
 function setRating(n) { pendingRating = n; updateRateStars(n); }
 
-// Keyboard support for the rating stars
+// Half-star support: tapping the left half of a star sets X.5, the right half sets X.0.
+function setRatingFromClick(e, n) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX != null ? e.clientX : rect.left + rect.width) - rect.left;
+  const rating = x < rect.width / 2 ? n - 0.5 : n;
+  setRating(rating);
+}
+
+// Keyboard support for the rating stars (whole stars only).
 document.querySelectorAll('#rateStars .star').forEach((s, i) => {
   s.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRating(i + 1); }
   });
 });
 
-function updateRateStars(n) { document.querySelectorAll('#rateStars .star').forEach((s, i) => s.classList.toggle('filled', i < n)); }
+function updateRateStars(n) {
+  document.querySelectorAll('#rateStars .star').forEach((s, i) => {
+    const pos = i + 1;
+    s.classList.toggle('full', n >= pos);
+    s.classList.toggle('half', n >= pos - 0.5 && n < pos);
+  });
+}
 
 function selectFormat(fmt) {
   pendingFormat = fmt;
@@ -3518,6 +3587,15 @@ function setNarrationRating(val) {
   pendingNarration = pendingNarration === val ? null : val;
   document.querySelectorAll('.narration-btn').forEach(b =>
     b.classList.toggle('active', !!pendingNarration && b.classList.contains(pendingNarration)));
+}
+
+function toggleDNF() {
+  pendingDNF = !pendingDNF;
+  const btn = document.getElementById('dnfBtn');
+  btn.classList.toggle('active', pendingDNF);
+  btn.setAttribute('aria-pressed', pendingDNF ? 'true' : 'false');
+  // When DNF, the "Finished" date reads as "Stopped" — relabel for clarity.
+  document.getElementById('rateFinishedLabel').textContent = pendingDNF ? 'Stopped' : 'Finished';
 }
 
 function setSeverity(cat, sev) {
@@ -3547,6 +3625,7 @@ function confirmMarkRead() {
       rb._format = pendingFormat || rb._format || 'physical';
       rb._narrationRating = rb._format === 'audiobook' ? pendingNarration : null;
       rb._contentWarnings = { ...pendingContentWarnings };
+      rb._dnf = pendingDNF;
       rb._dateStarted = dateStarted;
       rb._dateFinished = dateFinished;
       rb._dateRead = dateFinished; // keep legacy field in sync
@@ -3576,6 +3655,7 @@ function confirmMarkRead() {
       _format: fmt,
       _narrationRating: fmt === 'audiobook' ? pendingNarration : null,
       _contentWarnings: { ...pendingContentWarnings },
+      _dnf: pendingDNF,
       _category: book._category || categorizeBook(book)
     });
     saveReadBooks();
@@ -3589,7 +3669,13 @@ function confirmMarkRead() {
   showToast(`Rated "${book.title}" ${starsStr(pendingRating)}`);
 }
 
-function starsStr(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+function starsStr(n) {
+  const r = n || 0;
+  const full = Math.floor(r);
+  const half = r - full >= 0.5;
+  const empty = 5 - full - (half ? 1 : 0);
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, empty));
+}
 
 // ─── Library ───
 // Swap a broken cover <img> for a text placeholder (titles may contain quotes,
@@ -3695,8 +3781,12 @@ function renderReadList() {
   if (currentReadRating === 'reading') {
     filtered = filtered.filter(b => b._currentlyReading);
   } else if (currentReadRating !== 'all') {
-    if (currentReadRating === 'low') filtered = filtered.filter(b => !b._currentlyReading && b._rating <= 2);
-    else filtered = filtered.filter(b => !b._currentlyReading && b._rating === parseInt(currentReadRating));
+    // Half-star aware buckets: "low" = under 3; otherwise [n, n+0.5] (e.g. 4★ = 4.0 or 4.5).
+    if (currentReadRating === 'low') filtered = filtered.filter(b => !b._currentlyReading && (b._rating || 0) < 3);
+    else {
+      const lo = parseInt(currentReadRating);
+      filtered = filtered.filter(b => !b._currentlyReading && (b._rating || 0) >= lo && (b._rating || 0) < lo + 1);
+    }
   }
   // Genre filter
   if (currentReadGenre !== 'all') {
@@ -3732,6 +3822,7 @@ function renderReadList() {
         ${starsOrBadge}
         <div class="read-item-meta">
           ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
+          ${!isReading && book._dnf ? '<span class="read-meta-tag dnf">DNF</span>' : ''}
           ${!isReading && fmt === 'audiobook' && book._narrationRating ? `<span class="read-meta-tag narration-${book._narrationRating}">${book._narrationRating === 'up' ? '👍' : '👎'} Narration</span>` : ''}
           ${hasContentWarnings(book) ? '<span class="read-meta-tag mature">⚠ Mature Content</span>' : ''}
           ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
@@ -3936,11 +4027,8 @@ document.getElementById('searchInput').addEventListener('keydown', e => { if (e.
 
 // ─── Stats ───
 function renderStats() {
-  document.getElementById('statSwiped').textContent = stats.swiped;
   document.getElementById('statSaved').textContent = stats.saved;
-  document.getElementById('statPassed').textContent = stats.passed;
   document.getElementById('statRead').textContent = stats.read || 0;
-  document.getElementById('statRate').textContent = stats.swiped > 0 ? Math.round((stats.saved / stats.swiped) * 100) + '%' : '0%';
   // Only average books that actually have a rating (skip currently-reading / unrated)
   const ratedBooks = readBooks.filter(b => !b._currentlyReading && (b._rating || 0) > 0);
   if (ratedBooks.length > 0) {
@@ -3953,8 +4041,10 @@ function renderStats() {
   document.getElementById('yearGoalTitle').textContent = `${year} Reading Goal`;
   // Only count books with an explicit _dateFinished in the current year.
   // Ignore _dateRead — it was auto-populated during imports and doesn't
-  // reliably reflect when the book was actually finished.
+  // reliably reflect when the book was actually finished. DNF books are
+  // excluded from the goal (you didn't finish them) but still show in the Read list.
   const booksThisYear = readBooks.filter(b => {
+    if (b._dnf) return false;
     const d = b._dateFinished || '';
     return d.startsWith(String(year));
   });
