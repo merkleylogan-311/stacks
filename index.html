@@ -1235,14 +1235,21 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .read-meta-tag.narration-down { background: rgba(248,113,113,0.15); color: var(--red); }
 .read-meta-tag.dnf { background: rgba(250,204,21,0.15); color: var(--yellow); }
 
-/* DNF toggle in the rate modal */
-.dnf-btn {
-  width: 100%; padding: 11px; border-radius: 12px;
+/* Rating row: stars centered, DNF chip pinned to the right */
+.rate-rating-row {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.rate-rating-row .rate-stars { margin-bottom: 0; }
+.dnf-chip {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  padding: 6px 12px; border-radius: 10px;
   border: 1px solid var(--border); background: none;
-  color: var(--text2); font-size: 13px; font-weight: 600;
+  color: var(--text3); font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
   font-family: inherit; cursor: pointer; transition: all 0.15s;
 }
-.dnf-btn.active { border-color: var(--yellow); color: var(--yellow); background: rgba(250,204,21,0.1); }
+.dnf-chip.active { border-color: var(--yellow); color: var(--yellow); background: rgba(250,204,21,0.12); }
 
 /* Content warnings */
 .content-warnings-field { margin-bottom: 14px; text-align: left; }
@@ -1535,6 +1542,16 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .import-progress {
   font-size: 13px; color: var(--text2); text-align: center; padding: 8px 0;
 }
+.import-refresh-section { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.import-refresh-divider { height: 1px; background: var(--border); }
+.import-refresh-btn {
+  width: 100%; padding: 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.import-refresh-btn:hover { background: var(--surface3); border-color: var(--text3); }
+.import-refresh-btn:disabled { opacity: 0.6; cursor: default; }
 .import-go-btn {
   width: 100%; padding: 15px; border-radius: 14px; border: none;
   background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
@@ -1627,6 +1644,42 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .username-overlay.hidden { display: none; }
+
+/* Profile photo crop/zoom modal */
+.crop-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75); z-index: 700;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.crop-overlay.hidden { display: none; }
+.crop-card {
+  width: 100%; max-width: 340px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.crop-card h3 { font-size: 17px; font-weight: 700; }
+.crop-hint { font-size: 12px; color: var(--text3); margin-top: -8px; }
+.crop-frame {
+  position: relative; width: 260px; height: 260px;
+  border-radius: 50%; overflow: hidden; background: var(--surface2);
+  touch-action: none; cursor: grab; box-shadow: 0 0 0 2px var(--border);
+}
+.crop-frame:active { cursor: grabbing; }
+.crop-frame img {
+  position: absolute; left: 0; top: 0; transform-origin: top left;
+  user-select: none; -webkit-user-drag: none; pointer-events: none;
+}
+.crop-zoom { width: 100%; accent-color: var(--accent-solid); }
+.crop-actions { display: flex; gap: 10px; width: 100%; }
+.crop-btn {
+  flex: 1; padding: 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.crop-btn.cancel { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.crop-btn.set {
+  border: none; color: white;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
 .username-card {
   width: 100%; max-width: 360px;
   background: var(--bg); border-radius: 16px;
@@ -1776,7 +1829,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
           <button class="library-delete-btn" onclick="confirmLibraryMassDelete()">Delete</button>
         </div>
         <div class="library-filter">
-          <button class="refresh-books-btn" onclick="refreshBooksWithGoogleData()" title="Refresh book data">↻</button>
           <select class="read-filter-select" id="libraryGenreSelect" onchange="selectShelf(this.value)">
             <option value="all">All Genres</option>
             <option value="fiction">Fiction</option>
@@ -1796,7 +1848,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <!-- Read -->
     <div class="screen" id="screen-read">
       <div class="read-screen">
-        <div class="section-header"><h2>Read</h2><span class="section-count" id="readCount">0 books</span><button class="refresh-books-btn" onclick="refreshBooksWithGoogleData()" title="Refresh book data">↻</button></div>
+        <div class="section-header"><h2>Read</h2><span class="section-count" id="readCount">0 books</span></div>
         <div class="read-filters">
           <select class="read-filter-select" id="readRatingSelect" onchange="selectReadRating(this.value)">
             <option value="all">All Books</option>
@@ -1948,12 +2000,15 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   <div class="rate-modal" onclick="event.stopPropagation()">
     <h3 id="rateModalTitle">Rate this book</h3>
     <div class="rate-subtitle" id="rateModalSubtitle"></div>
-    <div class="rate-stars" id="rateStars" role="group" aria-label="Rating (tap left half of a star for a half rating)">
-      <span class="star" role="button" tabindex="0" aria-label="1 star" onclick="setRatingFromClick(event,1)">★<span class="star-fill">★</span></span>
-      <span class="star" role="button" tabindex="0" aria-label="2 stars" onclick="setRatingFromClick(event,2)">★<span class="star-fill">★</span></span>
-      <span class="star" role="button" tabindex="0" aria-label="3 stars" onclick="setRatingFromClick(event,3)">★<span class="star-fill">★</span></span>
-      <span class="star" role="button" tabindex="0" aria-label="4 stars" onclick="setRatingFromClick(event,4)">★<span class="star-fill">★</span></span>
-      <span class="star" role="button" tabindex="0" aria-label="5 stars" onclick="setRatingFromClick(event,5)">★<span class="star-fill">★</span></span>
+    <div class="rate-rating-row">
+      <div class="rate-stars" id="rateStars" role="group" aria-label="Rating (tap left half of a star for a half rating)">
+        <span class="star" role="button" tabindex="0" aria-label="1 star" onclick="setRatingFromClick(event,1)">★<span class="star-fill">★</span></span>
+        <span class="star" role="button" tabindex="0" aria-label="2 stars" onclick="setRatingFromClick(event,2)">★<span class="star-fill">★</span></span>
+        <span class="star" role="button" tabindex="0" aria-label="3 stars" onclick="setRatingFromClick(event,3)">★<span class="star-fill">★</span></span>
+        <span class="star" role="button" tabindex="0" aria-label="4 stars" onclick="setRatingFromClick(event,4)">★<span class="star-fill">★</span></span>
+        <span class="star" role="button" tabindex="0" aria-label="5 stars" onclick="setRatingFromClick(event,5)">★<span class="star-fill">★</span></span>
+      </div>
+      <button class="dnf-chip" id="dnfBtn" onclick="toggleDNF()" aria-pressed="false" title="Mark as did-not-finish">DNF</button>
     </div>
     <div class="rate-field">
       <span class="rate-field-label">Started</span>
@@ -1962,9 +2017,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <div class="rate-field">
       <span class="rate-field-label" id="rateFinishedLabel">Finished</span>
       <input type="date" class="rate-date-input" id="rateDateFinishedInput">
-    </div>
-    <div class="rate-field">
-      <button class="dnf-btn" id="dnfBtn" onclick="toggleDNF()" aria-pressed="false">Didn't finish (DNF)</button>
     </div>
     <div class="rate-field">
       <span class="rate-field-label">Format</span>
@@ -2077,6 +2129,22 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   </div>
 </div>
 
+<!-- Profile Photo Crop Modal -->
+<div class="crop-overlay hidden" id="cropOverlay">
+  <div class="crop-card">
+    <h3>Adjust photo</h3>
+    <p class="crop-hint">Drag to reposition · slide to zoom</p>
+    <div class="crop-frame" id="cropFrame">
+      <img id="cropImg" alt="" draggable="false">
+    </div>
+    <input type="range" min="1" max="4" step="0.01" value="1" id="cropZoom" class="crop-zoom" aria-label="Zoom" oninput="onCropZoom(this.value)">
+    <div class="crop-actions">
+      <button class="crop-btn cancel" onclick="closeCropModal()">Cancel</button>
+      <button class="crop-btn set" onclick="applyCrop()">Set Photo</button>
+    </div>
+  </div>
+</div>
+
 <!-- Username Claim Modal -->
 <div class="username-overlay hidden" id="usernameOverlay">
   <div class="username-card">
@@ -2121,6 +2189,16 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <div class="import-preview" id="importPreview" style="display:none"></div>
     <div class="import-progress" id="importProgress" style="display:none"></div>
     <button class="import-go-btn" id="importGoBtn" onclick="runGoodreadsImport()" style="display:none">Import Books</button>
+
+    <div class="import-refresh-section">
+      <div class="import-refresh-divider"></div>
+      <p class="import-instructions">
+        After importing, refresh your books to pull the latest cover art,
+        descriptions, and details from the book APIs.
+      </p>
+      <button class="import-refresh-btn" id="refreshAllBtn" onclick="refreshBooksWithGoogleData()">↻ Refresh all book data</button>
+      <div class="import-progress" id="refreshProgress" style="display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -2188,7 +2266,11 @@ let currentReadRating = 'all';
 let currentReadGenre = 'all';
 let currentReadYear = 'all';
 // Custom-tag system: built-in genres plus user-added tags persisted per-profile.
-const BUILT_IN_GENRES = ['fiction','science_fiction','memoir','self-help','business','lds','religion','suspense','fantasy','history','non_fiction','technology'];
+// Canonical genre set — drives the custom-tag picker AND the Library/Read genre
+// filters, matching the Discover category pills exactly (no LDS, mirroring its
+// removal from Discover). GENRE_DISPLAY keeps an 'lds' label for any legacy book
+// still categorized that way.
+const BUILT_IN_GENRES = ['fiction','science_fiction','memoir','self-help','business','religion','suspense','fantasy','history','non_fiction','technology'];
 const GENRE_DISPLAY = { fiction:'Fiction', science_fiction:'Sci-Fi', memoir:'Memoirs', 'self-help':'Self-Help', business:'Business', lds:'LDS', religion:'Religion', suspense:'Suspense', fantasy:'Fantasy', history:'History', non_fiction:'Non-Fiction', technology:'Technology' };
 let customTagsList = JSON.parse(localStorage.getItem(profileKey('custom_tags')) || '[]');
 function saveCustomTags() { localStorage.setItem(profileKey('custom_tags'), JSON.stringify(customTagsList)); }
@@ -4120,16 +4202,31 @@ function switchTab(tab) {
 }
 
 // ─── Refresh books with Google Books data ───
+// Consolidated "Refresh all book data" (lives under the Goodreads import section).
+// Re-pulls cover art, description, subjects/tags, page count, year, ratings, ISBN
+// for EVERY book in the Library + Read tabs — the latest from the book APIs.
+// User-set custom tags (_customTags) and ratings/DNF/format are never touched.
 let _refreshing = false;
 async function refreshBooksWithGoogleData() {
   if (_refreshing) return;
-  // Find books needing update (missing _coverUrl or _description)
-  const needsUpdate = [...readBooks, ...savedBooks].filter(b => !b._coverUrl || !b._description);
-  if (needsUpdate.length === 0) return;
+  // All books across both tabs, de-duplicated by key (a title won't be fetched twice).
+  const seen = new Set();
+  const allBooks = [...readBooks, ...savedBooks].filter(b => {
+    const k = bookKey(b);
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  if (allBooks.length === 0) { showToast('No books to refresh'); return; }
+
   _refreshing = true;
-  showToast(`Updating ${needsUpdate.length} books...`);
-  let updated = 0;
-  for (const book of needsUpdate) {
+  const btn = document.getElementById('refreshAllBtn');
+  const prog = document.getElementById('refreshProgress');
+  if (btn) btn.disabled = true;
+  if (prog) prog.style.display = '';
+  let updated = 0, done = 0;
+  for (const book of allBooks) {
+    done++;
+    if (prog) prog.textContent = `Updating ${done} of ${allBooks.length}…`;
     try {
       const q = `${book.title} ${(book.author_name || [])[0] || ''}`.trim();
       const url = `${GB_SEARCH}?q=${encodeURIComponent(q)}&langRestrict=en&maxResults=3&printType=books&key=${GB_API_KEY}`;
@@ -4143,6 +4240,7 @@ async function refreshBooksWithGoogleData() {
           if (titleMatch) {
             book.key = gb.key;
             if (gb._coverUrl) book._coverUrl = gb._coverUrl;
+            if (gb._hasRealCover) book._hasRealCover = gb._hasRealCover;
             if (gb._description) book._description = gb._description;
             if (gb.ratings_average) book.ratings_average = gb.ratings_average;
             if (gb.ratings_count) book.ratings_count = gb.ratings_count;
@@ -4159,13 +4257,11 @@ async function refreshBooksWithGoogleData() {
       await new Promise(r => setTimeout(r, 200));
     } catch (e) { console.warn('Refresh failed for:', book.title, e); }
   }
-  if (updated > 0) {
-    saveReadBooks(); saveSavedBooks();
-    renderReadList(); renderLibrary();
-    showToast(`Updated ${updated} books with new data`);
-  } else {
-    showToast('Books are up to date');
-  }
+  saveReadBooks(); saveSavedBooks();
+  renderReadList(); renderLibrary();
+  if (prog) { prog.textContent = `Updated ${updated} of ${allBooks.length} books`; }
+  if (btn) btn.disabled = false;
+  showToast(`Refreshed ${updated} book${updated === 1 ? '' : 's'}`);
   _refreshing = false;
 }
 
@@ -4321,35 +4417,120 @@ function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = 200;
-      const ctx = canvas.getContext('2d');
-      const size = Math.min(img.width, img.height);
-      const sx = (img.width - size) / 2;
-      const sy = (img.height - size) / 2;
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
-      _customPhotoURL = canvas.toDataURL('image/jpeg', 0.75);
-      if (currentUser && _fbDb) {
-        // Publish to the public profile doc (photoURL is an allowed field; customPhotoURL is not)
-        _fbDb.collection('users').doc(currentUser.uid)
-          .set({ photoURL: _customPhotoURL }, { merge: true })
-          .catch(e => console.warn('Photo publish failed:', e));
-        if (_profile) _profile.photoURL = _customPhotoURL;
-        scheduleFirestoreSave(); // persists customPhotoURL in private state
-        renderProfileTab();
-      }
-      updateProfileAvatar();
-      renderProfileList();
-      showToast('Profile photo updated');
-    };
-    img.src = e.target.result;
-  };
+  reader.onload = e => openCropModal(e.target.result);
   reader.readAsDataURL(file);
-  // Reset so same file can be re-selected
-  event.target.value = '';
+  event.target.value = ''; // reset so the same file can be re-selected
+}
+
+// Persist a finished (already-cropped) photo data URL everywhere it's shown.
+function savePhoto(dataURL) {
+  _customPhotoURL = dataURL;
+  if (currentUser && _fbDb) {
+    // Publish to the public profile doc (photoURL is an allowed field; customPhotoURL is not)
+    _fbDb.collection('users').doc(currentUser.uid)
+      .set({ photoURL: _customPhotoURL }, { merge: true })
+      .catch(e => console.warn('Photo publish failed:', e));
+    if (_profile) _profile.photoURL = _customPhotoURL;
+    scheduleFirestoreSave(); // persists customPhotoURL in private state
+    renderProfileTab();
+  }
+  updateProfileAvatar();
+  renderProfileList();
+  showToast('Profile photo updated');
+}
+
+// ─── Photo crop / zoom / center ───
+const _crop = { img: null, scale: 1, tx: 0, ty: 0, base: 1, frame: 260, dragging: false, sx: 0, sy: 0 };
+
+function openCropModal(dataURL) {
+  const img = new Image();
+  img.onload = () => {
+    _crop.img = img;
+    // base scale makes the image's shorter side exactly fill the frame at zoom 1.
+    _crop.base = _crop.frame / Math.min(img.naturalWidth, img.naturalHeight);
+    _crop.scale = 1;
+    document.getElementById('cropImg').src = dataURL;
+    document.getElementById('cropZoom').value = 1;
+    centerCrop();
+    applyCropTransform();
+    wireCropDrag();
+    document.getElementById('cropOverlay').classList.remove('hidden');
+  };
+  img.src = dataURL;
+}
+
+function closeCropModal() {
+  document.getElementById('cropOverlay').classList.add('hidden');
+  _crop.img = null;
+}
+
+function _cropDispSize() {
+  const s = _crop.base * _crop.scale;
+  return { w: _crop.img.naturalWidth * s, h: _crop.img.naturalHeight * s };
+}
+function centerCrop() {
+  const { w, h } = _cropDispSize();
+  _crop.tx = (_crop.frame - w) / 2;
+  _crop.ty = (_crop.frame - h) / 2;
+}
+function clampCrop() {
+  const { w, h } = _cropDispSize();
+  _crop.tx = Math.min(0, Math.max(_crop.frame - w, _crop.tx));
+  _crop.ty = Math.min(0, Math.max(_crop.frame - h, _crop.ty));
+}
+function applyCropTransform() {
+  const { w, h } = _cropDispSize();
+  const el = document.getElementById('cropImg');
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  el.style.transform = `translate(${_crop.tx}px, ${_crop.ty}px)`;
+}
+
+function onCropZoom(v) {
+  // Zoom around the frame's center so the focal point stays put.
+  const f = _crop.frame, old = _crop.scale, ns = parseFloat(v);
+  const cx = (f / 2 - _crop.tx) / (_crop.base * old);
+  const cy = (f / 2 - _crop.ty) / (_crop.base * old);
+  _crop.scale = ns;
+  _crop.tx = f / 2 - cx * _crop.base * ns;
+  _crop.ty = f / 2 - cy * _crop.base * ns;
+  clampCrop();
+  applyCropTransform();
+}
+
+let _cropWired = false;
+function wireCropDrag() {
+  if (_cropWired) return;
+  _cropWired = true;
+  const frame = document.getElementById('cropFrame');
+  frame.addEventListener('pointerdown', e => {
+    _crop.dragging = true; _crop.sx = e.clientX; _crop.sy = e.clientY;
+    frame.setPointerCapture(e.pointerId);
+  });
+  frame.addEventListener('pointermove', e => {
+    if (!_crop.dragging) return;
+    _crop.tx += e.clientX - _crop.sx;
+    _crop.ty += e.clientY - _crop.sy;
+    _crop.sx = e.clientX; _crop.sy = e.clientY;
+    clampCrop();
+    applyCropTransform();
+  });
+  const end = () => { _crop.dragging = false; };
+  frame.addEventListener('pointerup', end);
+  frame.addEventListener('pointercancel', end);
+}
+
+function applyCrop() {
+  if (!_crop.img) return;
+  const f = _crop.frame, s = _crop.base * _crop.scale;
+  // Map the visible frame back to source-image pixels.
+  const srcX = -_crop.tx / s, srcY = -_crop.ty / s, srcSize = f / s;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 200;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(_crop.img, srcX, srcY, srcSize, srcSize, 0, 0, 200, 200);
+  closeCropModal();
+  savePhoto(canvas.toDataURL('image/jpeg', 0.85));
 }
 
 // ─── Goodreads Import ───
