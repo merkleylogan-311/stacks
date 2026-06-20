@@ -744,18 +744,20 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 /* ── Read List Items ── */
 .read-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
 
-/* Swipe-to-delete: the item slides left to reveal a trash action behind it. */
+/* Swipe-to-delete: the row slides left to reveal a separate trash tile. */
 .read-item-wrap {
   position: relative;
-  border-radius: 12px;
   overflow: hidden;
 }
 .read-item-trash {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 76px;
+  position: absolute; right: 0; top: 0; bottom: 0; width: 60px;
+  border-radius: 12px;                /* its own independent rounded tile */
+  background: var(--surface2);
   display: flex; align-items: center; justify-content: center;
-  background: var(--red); color: #fff; font-size: 22px;
-  border: none; cursor: pointer;
+  color: var(--text); border: none; cursor: pointer; padding: 0;
 }
+.read-item-trash svg { width: 22px; height: 22px; }
+.read-item-trash:active { background: var(--surface3); }
 .read-item {
   display: flex;
   gap: 12px;
@@ -835,22 +837,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
 .read-meta-tag.audiobook { background: rgba(167,139,250,0.15); color: var(--purple); }
 .read-meta-tag.physical { background: rgba(96,165,250,0.15); color: var(--blue); }
-
-.read-item-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.read-remove-btn {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--surface3); border: none;
-  color: var(--text3); font-size: 12px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-}
 
 /* ── Stats ── */
 .stats { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
@@ -1961,7 +1947,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   <nav class="nav">
     <button class="nav-btn active" data-tab="discover" onclick="switchTab('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Discover</button>
     <button class="nav-btn" data-tab="search" onclick="switchTab('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Search</button>
-    <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Stacks</button>
+    <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg class="nav-stacks-icon" viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:22px"><rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/><rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/><rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/><rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/><g transform="rotate(-12, 17.5, 1)"><rect x="17.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/><rect x="18.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/></g><line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/></svg>Stacks</button>
     <button class="nav-btn" data-tab="read" onclick="switchTab('read')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Read</button>
     <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
   </nav>
@@ -3913,7 +3899,7 @@ function renderReadList() {
       ? '<div class="reading-badge"><span class="pulse-dot"></span> Currently Reading</div>'
       : `<div class="read-item-stars">${starsStr(book._rating)}</div>`;
     return `<div class="read-item-wrap">
-      <button class="read-item-trash" aria-label="Delete ${escHtml(book.title)}" onclick="confirmRemoveFromRead(${idx})">🗑</button>
+      <button class="read-item-trash" aria-label="Delete ${escHtml(book.title)}" onclick="confirmRemoveFromRead(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
       <div class="read-item" data-idx="${idx}">
         <img class="read-item-img" src="${getCoverUrl(book)}" alt="">
         <div class="read-item-info">
