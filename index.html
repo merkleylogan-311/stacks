@@ -2974,6 +2974,11 @@ async function loadForYouBooks(count = 5) {
 }
 
 // ─── AI recommendations (Layer 2 — Cloud Function + Claude Haiku 4.5) ───
+// Disabled for now: the client does NOT require the recommendBooks Cloud Function.
+// To re-enable later, set this to true and deploy the function (firebase deploy
+// --only functions, with the ANTHROPIC_API_KEY secret set). Everything else
+// (Firestore-synced passes, the heuristic For-You engine) works without it.
+const AI_RECS_ENABLED = false;
 let _agentRecQueue = JSON.parse(localStorage.getItem(profileKey('ai_recs')) || '[]');
 let _agentRecIndex = 0;
 let _agentRecMeta = JSON.parse(localStorage.getItem(profileKey('ai_recs_meta')) || '{}');
@@ -3005,6 +3010,7 @@ function buildTasteProfile() {
 
 // Decide whether to (re)generate AI recs, and do it in the background if so.
 async function maybeRefreshAgentRecs(force = false) {
+  if (!AI_RECS_ENABLED) return;                  // AI recommender off — no Cloud Function dependency
   if (!currentUser || !_fbFunctions) return;     // signed-in only; needs Functions SDK
   if (_agentRecsInFlight) return;
   if (!hasRatedBooks() && savedBooks.length === 0) return; // nothing to personalize from yet
@@ -3043,6 +3049,7 @@ async function maybeRefreshAgentRecs(force = false) {
 
 // Manual "refresh my recommendations" — bypasses the cache (still server-throttled).
 function refreshAiRecs() {
+  if (!AI_RECS_ENABLED) return;
   if (!currentUser) { showToast('Sign in for AI recommendations'); return; }
   showToast('Refreshing recommendations…');
   maybeRefreshAgentRecs(true);
@@ -3305,7 +3312,7 @@ function renderCards() {
       empty.innerHTML = '<div class="emoji">📖</div><h3>Rate some books first</h3><p>Mark books as read and rate them to get personalized recommendations</p>';
     else if (currentCategory === 'for-you')
       empty.innerHTML = '<div class="emoji">✨</div><h3>No more recommendations</h3><p>Rate more books to discover new ones</p>'
-        + (currentUser && _fbFunctions ? '<button class="empty-refresh-btn" onclick="refreshAiRecs()">↻ Refresh recommendations</button>' : '');
+        + (AI_RECS_ENABLED && currentUser && _fbFunctions ? '<button class="empty-refresh-btn" onclick="refreshAiRecs()">↻ Refresh recommendations</button>' : '');
     else
       empty.innerHTML = '<div class="emoji">📚</div><h3>No more books!</h3><p>Switch categories or search to find more</p>';
     return;
