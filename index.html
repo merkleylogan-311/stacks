@@ -744,6 +744,18 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 /* ── Read List Items ── */
 .read-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
 
+/* Swipe-to-delete: the item slides left to reveal a trash action behind it. */
+.read-item-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.read-item-trash {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 76px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--red); color: #fff; font-size: 22px;
+  border: none; cursor: pointer;
+}
 .read-item {
   display: flex;
   gap: 12px;
@@ -751,6 +763,10 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s ease;
+  touch-action: pan-y; /* keep vertical scroll; we handle horizontal swipes */
 }
 
 .read-item-img {
@@ -1235,15 +1251,15 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .read-meta-tag.narration-down { background: rgba(248,113,113,0.15); color: var(--red); }
 .read-meta-tag.dnf { background: rgba(250,204,21,0.15); color: var(--yellow); }
 
-/* Rating row: stars centered, DNF chip pinned to the right */
+/* Rating row: stars + DNF chip in a centered group, with clear spacing between */
 .rate-rating-row {
-  position: relative;
   display: flex; align-items: center; justify-content: center;
+  gap: 20px;
   margin-bottom: 16px;
 }
 .rate-rating-row .rate-stars { margin-bottom: 0; }
 .dnf-chip {
-  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  flex-shrink: 0;
   padding: 6px 12px; border-radius: 10px;
   border: 1px solid var(--border); background: none;
   color: var(--text3); font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
@@ -1820,7 +1836,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     <div class="screen" id="screen-library">
       <div class="library">
         <div class="section-header">
-          <h2>Library</h2>
+          <h2>Stacks</h2>
           <span class="section-count" id="libraryCount">0 books</span>
           <button class="library-select-btn" id="librarySelectBtn" onclick="toggleLibrarySelect()">Select</button>
         </div>
@@ -1945,7 +1961,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   <nav class="nav">
     <button class="nav-btn active" data-tab="discover" onclick="switchTab('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Discover</button>
     <button class="nav-btn" data-tab="search" onclick="switchTab('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Search</button>
-    <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Library</button>
+    <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Stacks</button>
     <button class="nav-btn" data-tab="read" onclick="switchTab('read')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Read</button>
     <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
   </nav>
@@ -3896,25 +3912,74 @@ function renderReadList() {
     const starsOrBadge = isReading
       ? '<div class="reading-badge"><span class="pulse-dot"></span> Currently Reading</div>'
       : `<div class="read-item-stars">${starsStr(book._rating)}</div>`;
-    return `<div class="read-item" onclick="showDetail(readBooks[${idx}])">
-      <img class="read-item-img" src="${getCoverUrl(book)}" alt="">
-      <div class="read-item-info">
-        <div class="read-item-title">${escHtml(book.title)}</div>
-        <div class="read-item-author">${escHtml((book.author_name || ['Unknown'])[0])}</div>
-        ${starsOrBadge}
-        <div class="read-item-meta">
-          ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
-          ${!isReading && book._dnf ? '<span class="read-meta-tag dnf">DNF</span>' : ''}
-          ${!isReading && fmt === 'audiobook' && book._narrationRating ? `<span class="read-meta-tag narration-${book._narrationRating}">${book._narrationRating === 'up' ? '👍' : '👎'} Narration</span>` : ''}
-          ${hasContentWarnings(book) ? '<span class="read-meta-tag mature">⚠ Mature Content</span>' : ''}
-          ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
+    return `<div class="read-item-wrap">
+      <button class="read-item-trash" aria-label="Delete ${escHtml(book.title)}" onclick="confirmRemoveFromRead(${idx})">🗑</button>
+      <div class="read-item" data-idx="${idx}">
+        <img class="read-item-img" src="${getCoverUrl(book)}" alt="">
+        <div class="read-item-info">
+          <div class="read-item-title">${escHtml(book.title)}</div>
+          <div class="read-item-author">${escHtml((book.author_name || ['Unknown'])[0])}</div>
+          ${starsOrBadge}
+          <div class="read-item-meta">
+            ${isReading ? '<span class="read-meta-tag currently-reading">In Progress</span>' : `<span class="read-meta-tag ${fmt}">${fmtIcon} ${fmtLabel}</span>`}
+            ${!isReading && book._dnf ? '<span class="read-meta-tag dnf">DNF</span>' : ''}
+            ${!isReading && fmt === 'audiobook' && book._narrationRating ? `<span class="read-meta-tag narration-${book._narrationRating}">${book._narrationRating === 'up' ? '👍' : '👎'} Narration</span>` : ''}
+            ${hasContentWarnings(book) ? '<span class="read-meta-tag mature">⚠ Mature Content</span>' : ''}
+            ${dateStr ? `<span class="read-meta-tag">${isReading ? 'Started ' : ''}${dateStr}</span>` : ''}
+          </div>
         </div>
-      </div>
-      <div class="read-item-actions">
-        <button class="read-remove-btn" aria-label="Remove ${escHtml(book.title)} from read list" onclick="event.stopPropagation();removeFromRead(${idx})">✕</button>
       </div>
     </div>`;
   }).join('');
+  wireReadSwipe();
+}
+
+// Swipe-left a Read item to reveal the trash action; tap (no drag) opens detail.
+const READ_SWIPE_OPEN = 76;
+function wireReadSwipe() {
+  document.querySelectorAll('#readList .read-item').forEach(el => {
+    let startX = 0, startY = 0, dx = 0, dragging = false, moved = false;
+    const baseOpen = () => el.dataset.open === '1';
+    const open = () => { el.style.transform = `translateX(-${READ_SWIPE_OPEN}px)`; el.dataset.open = '1'; };
+    const close = () => { el.style.transform = ''; el.dataset.open = ''; };
+    el.addEventListener('pointerdown', e => {
+      startX = e.clientX; startY = e.clientY; dragging = true; moved = false;
+      el.style.transition = 'none';
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) moved = true;
+      if (moved) {
+        let t = (baseOpen() ? -READ_SWIPE_OPEN : 0) + dx;
+        t = Math.max(-READ_SWIPE_OPEN, Math.min(0, t));
+        el.style.transform = `translateX(${t}px)`;
+      }
+    });
+    const finish = () => {
+      if (!dragging) return;
+      dragging = false; el.style.transition = '';
+      if (moved) {
+        const t = (baseOpen() ? -READ_SWIPE_OPEN : 0) + dx;
+        if (t < -READ_SWIPE_OPEN / 2) open(); else close();
+      }
+    };
+    el.addEventListener('pointerup', finish);
+    el.addEventListener('pointercancel', finish);
+    el.addEventListener('click', e => {
+      if (moved) { e.preventDefault(); return; }          // it was a swipe, not a tap
+      if (baseOpen()) { close(); return; }                // tap on an open row just closes it
+      const idx = parseInt(el.dataset.idx, 10);
+      if (!isNaN(idx) && readBooks[idx]) showDetail(readBooks[idx]);
+    });
+  });
+}
+
+function confirmRemoveFromRead(i) {
+  const book = readBooks[i];
+  if (!book) return;
+  if (confirm(`Remove "${book.title}" from your Read list?`)) removeFromRead(i);
 }
 
 function removeFromRead(i) {
