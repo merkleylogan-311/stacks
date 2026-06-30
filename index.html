@@ -3783,7 +3783,7 @@ function renderLibrary() {
   const emptyEl = document.getElementById('libraryEmpty');
   const countEl = document.getElementById('libraryCount');
   let filtered = savedBooks;
-  if (currentShelf !== 'all') filtered = savedBooks.filter(b => (b._category || categorizeBook(b)) === currentShelf);
+  if (currentShelf !== 'all') filtered = savedBooks.filter(b => bookMatchesGenre(b, currentShelf));
   countEl.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
   if (!filtered.length) { grid.innerHTML = ''; emptyEl.style.display = 'flex'; return; }
   emptyEl.style.display = 'none';
@@ -3881,7 +3881,7 @@ function renderReadList() {
   }
   // Genre filter
   if (currentReadGenre !== 'all') {
-    filtered = filtered.filter(b => (b._category || categorizeBook(b)) === currentReadGenre);
+    filtered = filtered.filter(b => bookMatchesGenre(b, currentReadGenre));
   }
   // Year filter (uses _dateFinished, falls back to _dateRead for legacy entries)
   if (currentReadYear !== 'all') {
@@ -4023,6 +4023,13 @@ function getAllTags() {
   return all;
 }
 function getBookCustomTags(book) { return book._customTags || []; }
+
+// A book matches a genre filter if its auto category matches OR it carries that
+// value as a user-added custom tag — so the Stacks/Read genre filters respect tags.
+function bookMatchesGenre(book, genre) {
+  if ((book._category || categorizeBook(book)) === genre) return true;
+  return (book._customTags || []).includes(genre);
+}
 function tagDisplayName(tag) { return GENRE_DISPLAY[tag] || tag; }
 
 function renderModalTags(book) {
