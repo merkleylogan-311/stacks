@@ -1031,7 +1031,8 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   cursor: pointer;
 }
 
-.search-results { display: flex; flex-direction: column; gap: 10px; }
+.search-results { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.search-results:empty { margin-top: 0; }
 
 .search-result-item {
   display: flex;
@@ -1072,13 +1073,14 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   border: 2px solid var(--green);
   background: none;
   color: var(--green);
-  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  padding: 0;
 }
+.search-result-add svg { width: 18px; height: 18px; display: block; }
 
 /* ── Toast ── */
 .toast {
@@ -1953,7 +1955,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         <h2>Search</h2>
         <div class="search-bar">
           <div class="search-input-wrap">
-            <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search">
+            <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search" autocorrect="off" autocapitalize="none" autocomplete="off" spellcheck="false">
             <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
           </div>
           <button class="search-go" onclick="doSearch()">Search</button>
@@ -4253,7 +4255,7 @@ function renderSearchResults() {
     if (isReading) status = '<span style="color:var(--green);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Reading 📖</span>';
     else if (isRead) status = '<span style="color:var(--blue);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Read ✓</span>';
     else if (isSaved) status = '<span style="color:var(--green);margin-left:auto;align-self:center;font-size:11px;flex-shrink:0">Saved ✓</span>';
-    else status = `<button class="search-result-add" onclick="event.stopPropagation();addFromSearch(${i})">+</button>`;
+    else status = `<button class="search-result-add" aria-label="Add to library" onclick="event.stopPropagation();addFromSearch(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`;
     return `<div class="search-result-item" onclick="showDetail(searchResultBooks[${i}])">
       <img class="search-result-img" src="${getCoverUrl(book)}" alt="">
       <div class="search-result-info">
