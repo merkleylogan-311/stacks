@@ -2935,25 +2935,26 @@ function searchRelevanceScore(book, query, index, total) {
   s += qWords.filter(w => authors.includes(w)).length * 6;    // author word hits
 
   // 3. Cover art — attractiveness (real embedded cover) + availability.
-  if (book._hasRealCover) s += 30;
-  else if (book._coverUrl) s += 6;                            // has some cover but likely a placeholder
+  //    Weighted heavily: cover quality outranks summary + details availability.
+  if (book._hasRealCover) s += 55;
+  else if (book._coverUrl) s += 8;                            // has some cover but likely a placeholder
 
   // 4. English language — de-prioritize other languages.
   const langs = book.language || [];
   if (langs.includes('en') || langs.includes('eng')) s += 12;
   else if (langs.length > 0) s -= 25;
 
-  // 5. Summary availability.
+  // 5. Summary availability (lighter than cover art).
   const desc = book._description || '';
-  if (desc.length > 400) s += 18;
-  else if (desc.length > 60) s += 10;
+  if (desc.length > 400) s += 10;
+  else if (desc.length > 60) s += 5;
 
-  // 6. Details availability (page count, year, subjects, ISBN, ratings).
-  if (book.number_of_pages_median) s += 5;
-  if (book.first_publish_year) s += 4;
-  if ((book.subject || []).length) s += 4;
-  if (book.isbn && book.isbn.length) s += 4;
-  if (book.ratings_count) s += Math.min(10, Math.log10(book.ratings_count + 1) * 4);
+  // 6. Details availability — page count, year, subjects, ISBN, ratings (lighter than cover art).
+  if (book.number_of_pages_median) s += 3;
+  if (book.first_publish_year) s += 2;
+  if ((book.subject || []).length) s += 2;
+  if (book.isbn && book.isbn.length) s += 2;
+  if (book.ratings_count) s += Math.min(6, Math.log10(book.ratings_count + 1) * 2.5);
 
   return s;
 }
