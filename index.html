@@ -1426,6 +1426,24 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   padding: 24px;
 }
 .auth-overlay.hidden { display: none; }
+
+/* Splash — covers the app on load until auth resolves, so the login form never flashes */
+.splash-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  z-index: 800;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px;
+}
+.splash-overlay.hidden { display: none; }
+.splash-spinner {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 3px solid var(--surface3);
+  border-top-color: var(--accent-solid);
+  animation: splash-spin 0.7s linear infinite;
+}
+@keyframes splash-spin { to { transform: rotate(360deg); } }
 .auth-card {
   width: 100%; max-width: 360px;
   display: flex; flex-direction: column; align-items: center;
@@ -2105,6 +2123,22 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Splash (shown on load until Firebase restores the session — avoids a login-screen flash) -->
+<div class="splash-overlay" id="splashOverlay">
+  <svg viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:52px">
+    <rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/>
+    <rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/>
+    <rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
+    <rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
+    <g transform="rotate(-12, 17.5, 1)">
+      <rect x="17.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/>
+      <rect x="18.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/>
+    </g>
+    <line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <div class="splash-spinner"></div>
+</div>
 
 <!-- Auth Overlay -->
 <div class="auth-overlay hidden" id="authOverlay">
@@ -5417,17 +5451,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Bootstrap ───
+function hideSplash() { const s = document.getElementById('splashOverlay'); if (s) s.classList.add('hidden'); }
+
 if (FIREBASE_CONFIGURED && _fbAuth) {
-  showAuthOverlay();
+  // Persist the session on-device so returning users skip the login screen entirely.
+  _fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+  // Fallback: if auth never resolves (rare), don't leave the user stuck on the splash.
+  const _authFallback = setTimeout(() => { if (!_appInited && !currentUser) { hideSplash(); showAuthOverlay(); } }, 8000);
   _fbAuth.onAuthStateChanged(async user => {
+    clearTimeout(_authFallback);
     currentUser = user;
     if (user) {
-      // Reload state under new uid key before init
+      // Restored (or fresh) session → go straight in; the login form is never shown.
       swipeHistory = []; currentBooks = [];
       await loadFromFirestore();
       await ensureProfileDoc();
       await loadSocialState();
       hideAuthOverlay();
+      hideSplash();
       if (_appInited) {
         // Already running (profile switch) — just re-render
         updateProfileAvatar();
@@ -5437,12 +5478,15 @@ if (FIREBASE_CONFIGURED && _fbAuth) {
         init();
       }
     } else if (!_guestMode) {
+      // No saved session — now it's legitimate to show the login screen.
       _appInited = false;
+      hideSplash();
       showAuthOverlay();
     }
   });
 } else {
   // Firebase not configured — run in guest/local mode
+  hideSplash();
   init();
 }
 
