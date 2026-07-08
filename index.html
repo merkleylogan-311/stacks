@@ -1278,6 +1278,29 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .severity-btn.active[data-sev="heavy"] { border-color: var(--red); background: rgba(248,113,113,0.1); color: var(--red); }
 .read-meta-tag.mature { background: rgba(248,113,113,0.15); color: var(--red); }
 
+.review-input {
+  width: 100%; margin-top: 6px; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  font-size: 14px; font-family: inherit; line-height: 1.5;
+  resize: vertical; min-height: 84px; outline: none;
+  transition: border-color 0.15s;
+}
+.review-input:focus { border-color: var(--accent-solid); }
+.review-input::placeholder { color: var(--text3); }
+
+/* Saved review shown in the book detail view */
+.modal-review {
+  margin-bottom: 14px; padding: 12px 14px;
+  border-radius: 12px; background: var(--surface2);
+  border-left: 3px solid var(--accent-solid);
+}
+.modal-review-label {
+  font-size: 12px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.modal-review-text { font-size: 14px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+
 .rate-actions { display: flex; gap: 10px; margin-top: 4px; }
 
 .rate-btn {
@@ -1978,6 +2001,10 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
           </div>
         </div>
       </div>
+      <div class="modal-review" id="modalReview" style="display:none">
+        <div class="modal-review-label">My Review</div>
+        <div class="modal-review-text" id="modalReviewText"></div>
+      </div>
       <div class="modal-description" id="modalDesc"></div>
       <div class="narration-section" id="narrationSection" style="display:none;">
         <div class="narration-icon">🎧</div>
@@ -2064,6 +2091,11 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
           <button class="severity-btn" data-sev="heavy" onclick="setSeverity('violence','heavy')">Heavy</button>
         </div>
       </div>
+    </div>
+    <div class="rate-field">
+      <span class="rate-field-label">Review</span>
+      <textarea class="review-input" id="reviewInput" rows="4" maxlength="4000"
+        placeholder="Your thoughts and impressions of this book… (optional)"></textarea>
     </div>
     <div class="rate-actions">
       <button class="rate-btn cancel" onclick="closeRateModal()">Cancel</button>
@@ -3461,6 +3493,16 @@ async function showDetail(book) {
   renderModalTags(book);
   document.getElementById('tagPicker').classList.remove('open');
 
+  // Show the user's own review, if they've written one for this book.
+  const reviewEntry = readBooks.find(r => bookKey(r) === bookKey(book));
+  const reviewWrap = document.getElementById('modalReview');
+  if (reviewEntry && reviewEntry._review) {
+    document.getElementById('modalReviewText').textContent = reviewEntry._review;
+    reviewWrap.style.display = '';
+  } else {
+    reviewWrap.style.display = 'none';
+  }
+
   const descEl = document.getElementById('modalDesc');
   descEl.textContent = 'Loading description...';
 
@@ -3605,6 +3647,7 @@ function openRateModal(editKey = null) {
     editKey ? (book._dateStarted || '') : today;
   document.getElementById('rateDateFinishedInput').value =
     isFinishing ? today : editKey ? (book._dateFinished || book._dateRead || today) : today;
+  document.getElementById('reviewInput').value = editKey ? (book._review || '') : '';
   document.getElementById('rateModal').classList.add('open');
 }
 
@@ -3702,6 +3745,7 @@ function hasContentWarnings(book) {
 }
 
 function confirmMarkRead() {
+  const reviewText = document.getElementById('reviewInput').value.trim();
   if (pendingRating === 0) { showToast('Please select a rating'); return; }
   const dateStarted = document.getElementById('rateDateStartedInput').value || '';
   const dateFinished = document.getElementById('rateDateFinishedInput').value
@@ -3717,6 +3761,7 @@ function confirmMarkRead() {
       rb._narrationRating = rb._format === 'audiobook' ? pendingNarration : null;
       rb._contentWarnings = { ...pendingContentWarnings };
       rb._dnf = pendingDNF;
+      rb._review = reviewText;
       rb._dateStarted = dateStarted;
       rb._dateFinished = dateFinished;
       rb._dateRead = dateFinished; // keep legacy field in sync
@@ -3747,6 +3792,7 @@ function confirmMarkRead() {
       _narrationRating: fmt === 'audiobook' ? pendingNarration : null,
       _contentWarnings: { ...pendingContentWarnings },
       _dnf: pendingDNF,
+      _review: reviewText,
       _category: book._category || categorizeBook(book)
     });
     saveReadBooks();
