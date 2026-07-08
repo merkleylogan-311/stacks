@@ -1438,40 +1438,36 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 .splash-overlay.hidden { display: none; }
 
-/* Animated book-stack logo: books fade/pop in left→right, then the last leans. */
-.splash-anim { width: 104px; height: 86px; overflow: visible; }
-.splash-anim .splash-bk { transform-box: fill-box; opacity: 0; }
-.splash-anim .splash-bk1 { transform-origin: bottom center; animation: splashBk1 3.2s ease-in-out infinite; }
-.splash-anim .splash-bk2 { transform-origin: bottom center; animation: splashBk2 3.2s ease-in-out infinite; }
-.splash-anim .splash-bk3 { transform-origin: bottom left;   animation: splashBk3 3.2s ease-in-out infinite; }
+/* Animated book-stack logo: books fall from above and land upright left→right
+   with gaps, then the last book falls to lean against the middle one. */
+.splash-anim { width: 108px; height: 92px; overflow: visible; }
+.splash-anim .splash-bk { transform-box: fill-box; opacity: 0; animation-timing-function: ease-in; }
+.splash-anim .splash-bk1 { transform-origin: bottom center; animation: splashFall1 3.8s ease-in infinite; }
+.splash-anim .splash-bk2 { transform-origin: bottom center; animation: splashFall2 3.8s ease-in infinite; }
+.splash-anim .splash-bk3 { transform-origin: bottom left;   animation: splashFall3 3.8s ease-in infinite; }
 
-@keyframes splashBk1 {
-  0%,4%   { opacity: 0; transform: scale(0.5); }
-  9%      { opacity: 1; transform: scale(1.08); }
-  13%     { opacity: 1; transform: scale(1); }
-  88%     { opacity: 1; transform: scale(1); }
-  95%,100%{ opacity: 0; transform: scale(1); }
+@keyframes splashFall1 {
+  0%      { opacity: 0; transform: translateY(-28px); }
+  5%      { opacity: 1; transform: translateY(-28px); }
+  15%     { opacity: 1; transform: translateY(0); }
+  87%     { opacity: 1; transform: translateY(0); }
+  94%,100%{ opacity: 0; transform: translateY(0); }
 }
-@keyframes splashBk2 {
-  0%,16%  { opacity: 0; transform: scale(0.5); }
-  21%     { opacity: 1; transform: scale(1.08); }
-  25%     { opacity: 1; transform: scale(1); }
-  88%     { opacity: 1; transform: scale(1); }
-  95%,100%{ opacity: 0; transform: scale(1); }
+@keyframes splashFall2 {
+  0%,18%  { opacity: 0; transform: translateY(-28px); }
+  23%     { opacity: 1; transform: translateY(-28px); }
+  33%     { opacity: 1; transform: translateY(0); }
+  87%     { opacity: 1; transform: translateY(0); }
+  94%,100%{ opacity: 0; transform: translateY(0); }
 }
-@keyframes splashBk3 {
-  0%,28%  { opacity: 0; transform: scale(0.5) rotate(0deg); }
-  33%     { opacity: 1; transform: scale(1.08) rotate(0deg); }
-  37%     { opacity: 1; transform: scale(1) rotate(0deg); }
-  44%     { opacity: 1; transform: scale(1) rotate(0deg); }
-  58%     { opacity: 1; transform: scale(1) rotate(-12deg); }
-  88%     { opacity: 1; transform: scale(1) rotate(-12deg); }
-  95%,100%{ opacity: 0; transform: scale(1) rotate(-12deg); }
-}
-.splash-wordmark {
-  font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+@keyframes splashFall3 {
+  0%,36%  { opacity: 0; transform: translateY(-28px) rotate(0deg); }
+  41%     { opacity: 1; transform: translateY(-28px) rotate(0deg); }
+  51%     { opacity: 1; transform: translateY(0) rotate(0deg); }   /* lands upright, gap visible */
+  56%     { opacity: 1; transform: translateY(0) rotate(0deg); }   /* brief upright beat */
+  70%     { opacity: 1; transform: translateY(0) rotate(-12deg); } /* falls to lean on book 2 */
+  87%     { opacity: 1; transform: translateY(0) rotate(-12deg); }
+  94%,100%{ opacity: 0; transform: translateY(0) rotate(-12deg); }
 }
 /* Respect reduced-motion: hold the finished logo, no animation. */
 @media (prefers-reduced-motion: reduce) {
@@ -2160,26 +2156,25 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
 <!-- Splash (shown on load until Firebase restores the session — avoids a login-screen flash) -->
 <div class="splash-overlay" id="splashOverlay">
-  <svg class="splash-anim" viewBox="-3 -3 36 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Loading Stacks">
-    <!-- shelf baseline (always visible; books stack onto it) -->
-    <line class="splash-base" x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/>
+  <svg class="splash-anim" viewBox="-3 -4 38 31" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Loading Stacks">
+    <!-- shelf baseline (always visible; books drop onto it) -->
+    <line class="splash-base" x1="0" y1="22.5" x2="31" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/>
     <!-- Book 1: left, upright -->
     <g class="splash-bk splash-bk1">
       <rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/>
       <rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/>
     </g>
-    <!-- Book 2: middle, tallest -->
+    <!-- Book 2: middle, tallest (gap after book 1) -->
     <g class="splash-bk splash-bk2">
-      <rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
-      <rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
+      <rect x="10.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/>
+      <rect x="11.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/>
     </g>
-    <!-- Book 3: right, pops in upright then falls to lean on book 2 -->
+    <!-- Book 3: right, lands upright with a gap, then falls to lean on book 2 -->
     <g class="splash-bk splash-bk3">
-      <rect x="17.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/>
-      <rect x="18.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/>
+      <rect x="21.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/>
+      <rect x="22.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/>
     </g>
   </svg>
-  <div class="splash-wordmark">Stacks</div>
 </div>
 
 <!-- Auth Overlay -->
