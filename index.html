@@ -382,7 +382,9 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   background: var(--surface);
   width: 100%;
   max-width: 430px;
-  max-height: 90vh;
+  /* Leave the top safe-area (status bar / Dynamic Island) clear plus a small gap,
+     so this bottom sheet never crowds the iPhone status icons. */
+  max-height: calc(90vh - var(--safe-top) - 12px);
   border-radius: 20px 20px 0 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
