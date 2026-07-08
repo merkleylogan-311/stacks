@@ -2915,14 +2915,62 @@ function isSearchableBook(book) {
   return true;
 }
 
+// Composite ranking for search results: term alignment (Google's relevance +
+// title/author match) blended with quality signals — attractive/available cover
+// art, English language, and summary + details availability.
+function searchRelevanceScore(book, query, index, total) {
+  let s = 0;
+
+  // 1. Google's relevance order (captures term/title/author alignment) — the base.
+  s += (total - index) * 2;
+
+  const q = (query || '').toLowerCase().trim();
+  const qWords = q.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+  const title = (book.title || '').toLowerCase();
+  const authors = (book.author_name || []).join(' ').toLowerCase();
+
+  // 2. Title / author alignment with the search term.
+  if (title === q) s += 60;                                   // exact title match
+  s += qWords.filter(w => title.includes(w)).length * 8;      // title word hits
+  s += qWords.filter(w => authors.includes(w)).length * 6;    // author word hits
+
+  // 3. Cover art — attractiveness (real embedded cover) + availability.
+  if (book._hasRealCover) s += 30;
+  else if (book._coverUrl) s += 6;                            // has some cover but likely a placeholder
+
+  // 4. English language — de-prioritize other languages.
+  const langs = book.language || [];
+  if (langs.includes('en') || langs.includes('eng')) s += 12;
+  else if (langs.length > 0) s -= 25;
+
+  // 5. Summary availability.
+  const desc = book._description || '';
+  if (desc.length > 400) s += 18;
+  else if (desc.length > 60) s += 10;
+
+  // 6. Details availability (page count, year, subjects, ISBN, ratings).
+  if (book.number_of_pages_median) s += 5;
+  if (book.first_publish_year) s += 4;
+  if ((book.subject || []).length) s += 4;
+  if (book.isbn && book.isbn.length) s += 4;
+  if (book.ratings_count) s += Math.min(10, Math.log10(book.ratings_count + 1) * 4);
+
+  return s;
+}
+
 async function searchBooks(query) {
   try {
     const url = `${GB_SEARCH}?q=${encodeURIComponent(query)}&langRestrict=en&maxResults=40&orderBy=relevance&printType=books&key=${GB_API_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
-    return (data.items || [])
+    const filtered = (data.items || [])
       .map(normalizeGBook)
       .filter(isSearchableBook);
+    // Re-rank by the composite score (stable: ties keep Google's relevance order).
+    return filtered
+      .map((book, i) => ({ book, i, score: searchRelevanceScore(book, query, i, filtered.length) }))
+      .sort((a, b) => (b.score - a.score) || (a.i - b.i))
+      .map(x => x.book);
   } catch (e) { console.error('Search error:', e); return []; }
 }
 
