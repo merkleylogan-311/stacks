@@ -2929,10 +2929,12 @@ function searchRelevanceScore(book, query, index, total) {
   const title = (book.title || '').toLowerCase();
   const authors = (book.author_name || []).join(' ').toLowerCase();
 
-  // 2. Title / author alignment with the search term.
-  if (title === q) s += 60;                                   // exact title match
-  s += qWords.filter(w => title.includes(w)).length * 8;      // title word hits
-  s += qWords.filter(w => authors.includes(w)).length * 6;    // author word hits
+  // 2. Title / author alignment with the search term — the HEAVIEST signal.
+  if (title === q) s += 140;                                              // exact title match
+  else if (qWords.length && qWords.every(w => title.includes(w))) s += 70; // every query word appears in the title
+  s += qWords.filter(w => title.includes(w)).length * 22;                 // per title-word hit
+  if (qWords.length && qWords.every(w => authors.includes(w))) s += 50;    // full author-name match
+  s += qWords.filter(w => authors.includes(w)).length * 16;               // per author-word hit
 
   // 3. Cover art — attractiveness (real embedded cover) + availability.
   //    Weighted heavily: cover quality outranks summary + details availability.
