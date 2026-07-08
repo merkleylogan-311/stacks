@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stacks-v17';
+const CACHE_NAME = 'stacks-v18';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -7,15 +7,41 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));
-  self.clients.claim();
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for API calls, cache-first for assets
-  if (e.request.url.includes('googleapis.com/books') || e.request.url.includes('api.nytimes.com')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-  } else {
-    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  const isHTML = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+
+  // Network-first for the app HTML so a new deploy loads immediately when online.
+  // Falls back to the cached copy only when offline. This prevents an installed
+  // PWA from getting stuck on a stale build.
+  if (isHTML) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put('./index.html', copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match('./index.html').then(r => r || caches.match(req)))
+    );
+    return;
   }
+
+  // Network-first for the book APIs, cache as offline fallback.
+  if (req.url.includes('googleapis.com/books') || req.url.includes('api.nytimes.com')) {
+    e.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
+
+  // Cache-first for other static assets (manifest, icons).
+  e.respondWith(caches.match(req).then(r => r || fetch(req)));
 });

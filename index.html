@@ -1469,11 +1469,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   87%     { opacity: 1; transform: translateY(0) rotate(-12deg); }
   94%,100%{ opacity: 0; transform: translateY(0) rotate(-12deg); }
 }
-/* Respect reduced-motion: hold the finished logo, no animation. */
-@media (prefers-reduced-motion: reduce) {
-  .splash-anim .splash-bk { opacity: 1; animation: none; }
-  .splash-anim .splash-bk3 { transform: rotate(-12deg); }
-}
 .auth-card {
   width: 100%; max-width: 360px;
   display: flex; flex-direction: column; align-items: center;
@@ -5488,7 +5483,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Bootstrap ───
-function hideSplash() { const s = document.getElementById('splashOverlay'); if (s) s.classList.add('hidden'); }
+// Keep the splash up long enough to actually see the loading animation, even when
+// the session restores instantly. ~2.7s lets the books fall and the last one lean.
+const _splashStart = Date.now();
+const SPLASH_MIN_MS = 2700;
+function hideSplash() {
+  const s = document.getElementById('splashOverlay');
+  if (!s) return;
+  const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - _splashStart));
+  setTimeout(() => s.classList.add('hidden'), wait);
+}
 
 if (FIREBASE_CONFIGURED && _fbAuth) {
   // Persist the session on-device so returning users skip the login screen entirely.
