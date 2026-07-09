@@ -885,6 +885,28 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 .genre-empty { font-size: 13px; color: var(--text3); }
 
+/* Reading momentum card */
+.momentum-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent-solid);
+  display: flex; align-items: center; gap: 12px;
+}
+.momentum-icon { font-size: 24px; flex-shrink: 0; }
+.momentum-text { font-size: 13px; line-height: 1.5; color: var(--text); }
+
+/* Genre breakdown scope toggle */
+.genre-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+.genre-head h3 { margin-bottom: 0; }
+.genre-scope-toggle { display: flex; gap: 4px; background: var(--surface2); border-radius: 9px; padding: 3px; }
+.genre-scope-btn {
+  padding: 5px 10px; border-radius: 7px; border: none; background: none;
+  color: var(--text3); font-size: 12px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.genre-scope-btn.active { background: var(--surface3); color: var(--text); }
+
 /* Year goal card */
 .year-goal-card {
   background: var(--surface);
@@ -2017,14 +2039,27 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
           <div class="stat-card"><span class="stat-number gradient" id="statAvgRatingYear">—</span><span class="stat-label">Avg rating</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statAvgFinishYear">—</span><span class="stat-label">Avg time to finish</span></div>
         </div>
+        <div class="momentum-card" id="momentumCard" style="display:none">
+          <span class="momentum-icon" id="momentumIcon"></span>
+          <div class="momentum-text" id="momentumText"></div>
+        </div>
         <h3 class="stats-subhead">All Time</h3>
         <div class="stats-grid">
           <div class="stat-card"><span class="stat-number gradient" id="statSaved">0</span><span class="stat-label">Books saved</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statRead">0</span><span class="stat-label">Books read</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statAvgRating">—</span><span class="stat-label">Avg rating</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statAvgFinishAll">—</span><span class="stat-label">Avg time to finish</span></div>
         </div>
-        <div class="genre-breakdown"><h3>Genre Breakdown — This Year (<span id="genreYearLabel">2026</span>)</h3><div class="genre-bar-container" id="genreBarsYear"></div></div>
-        <div class="genre-breakdown"><h3>Genre Breakdown — All Time</h3><div class="genre-bar-container" id="genreBars"></div></div>
+        <div class="genre-breakdown">
+          <div class="genre-head">
+            <h3>Genre Breakdown</h3>
+            <div class="genre-scope-toggle">
+              <button class="genre-scope-btn active" data-scope="year" onclick="setGenreScope('year')">This Year</button>
+              <button class="genre-scope-btn" data-scope="all" onclick="setGenreScope('all')">All Time</button>
+            </div>
+          </div>
+          <div class="genre-bar-container" id="genreBars"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -4379,11 +4414,35 @@ function renderGenreBars(elId, counts) {
   ).join('');
 }
 
+// Average days-to-finish across a set of books that have both start + finish dates.
+// Returns { avg, count } or null when no book has both dates.
+function avgFinishDays(books) {
+  const ds = books.map(b => {
+    if (!b._dateStarted || !b._dateFinished) return null;
+    const days = (new Date(b._dateFinished + 'T00:00:00') - new Date(b._dateStarted + 'T00:00:00')) / 86400000;
+    return (isFinite(days) && days >= 0) ? days : null;
+  }).filter(d => d !== null);
+  return ds.length ? { avg: ds.reduce((a, b) => a + b, 0) / ds.length, count: ds.length } : null;
+}
+function fmtDays(avg) {
+  if (avg < 1) return '<1 day';
+  const r = Math.round(avg);
+  return r + (r === 1 ? ' day' : ' days');
+}
+
+// Genre breakdown scope toggle (This Year / All Time), sharing one chart.
+let genreScope = 'year';
+let _genreCountsAll = {}, _genreCountsYear = {};
+function renderGenreScope() {
+  document.querySelectorAll('.genre-scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === genreScope));
+  renderGenreBars('genreBars', genreScope === 'year' ? _genreCountsYear : _genreCountsAll);
+}
+function setGenreScope(s) { genreScope = s; renderGenreScope(); }
+
 function renderStats() {
   const year = new Date().getFullYear();
   const yStr = String(year);
   document.getElementById('statsYearLabel').textContent = year;
-  document.getElementById('genreYearLabel').textContent = year;
 
   // ── All-time ──
   document.getElementById('statSaved').textContent = stats.saved;
@@ -4405,8 +4464,8 @@ function renderStats() {
     (stats.yearlyGoal > 0 ? Math.min(100, Math.round((booksThisYear.length / stats.yearlyGoal) * 100)) : 0) + '%';
 
   // ── This-year stat cards ──
-  const savedThisYear = savedBooks.filter(b => b.savedAt && new Date(b.savedAt).getFullYear() === year).length;
-  document.getElementById('statSavedYear').textContent = savedThisYear;
+  document.getElementById('statSavedYear').textContent =
+    savedBooks.filter(b => b.savedAt && new Date(b.savedAt).getFullYear() === year).length;
   document.getElementById('statReadYear').textContent = booksThisYear.length;
 
   const ratedThisYear = readBooks.filter(b => !b._currentlyReading && (b._rating || 0) > 0 && (b._dateFinished || '').startsWith(yStr));
@@ -4414,26 +4473,41 @@ function renderStats() {
     ? (ratedThisYear.reduce((s, b) => s + b._rating, 0) / ratedThisYear.length).toFixed(1) + ' ★'
     : '—';
 
-  // Average time to finish = mean of (finish date − start date) for books finished
-  // this year that have both dates.
-  const durations = booksThisYear.map(b => {
-    if (!b._dateStarted || !b._dateFinished) return null;
-    const days = (new Date(b._dateFinished + 'T00:00:00') - new Date(b._dateStarted + 'T00:00:00')) / 86400000;
-    return (isFinite(days) && days >= 0) ? days : null;
-  }).filter(d => d !== null);
-  if (durations.length) {
-    const avgDays = durations.reduce((a, b) => a + b, 0) / durations.length;
-    const rounded = Math.round(avgDays);
-    document.getElementById('statAvgFinishYear').textContent =
-      avgDays < 1 ? '<1 day' : rounded + (rounded === 1 ? ' day' : ' days');
+  // ── Avg time to finish: this year + all time ──
+  const finishYear = avgFinishDays(booksThisYear);
+  const finishAll = avgFinishDays(readBooks.filter(b => !b._currentlyReading && !b._dnf));
+  document.getElementById('statAvgFinishYear').textContent = finishYear ? fmtDays(finishYear.avg) : '—';
+  document.getElementById('statAvgFinishAll').textContent = finishAll ? fmtDays(finishAll.avg) : '—';
+
+  // ── Reading momentum: this-year pace vs all-time average length ──
+  const momCard = document.getElementById('momentumCard');
+  if (finishYear && finishAll) {
+    const diff = finishAll.avg - finishYear.avg; // positive → faster this year
+    const n = booksThisYear.length;
+    const nBooks = `${n} book${n === 1 ? '' : 's'}`;
+    const fmtDiff = d => { const r = Math.max(1, Math.round(d)); return r === 1 ? 'a day' : r + ' days'; };
+    let icon, text;
+    if (Math.abs(diff) < 0.5) {
+      icon = '⚖️';
+      text = `You've finished ${nBooks} this year — right on pace with your all-time average of ${fmtDays(finishAll.avg)} per book.`;
+    } else if (diff > 0) {
+      icon = '📈';
+      text = `You're on a roll — you've finished ${nBooks} this year, about ${fmtDiff(diff)} faster each than your all-time average of ${fmtDays(finishAll.avg)}.`;
+    } else {
+      icon = '📉';
+      text = `You've finished ${nBooks} this year, taking about ${fmtDiff(-diff)} longer each than your all-time average of ${fmtDays(finishAll.avg)}.`;
+    }
+    document.getElementById('momentumIcon').textContent = icon;
+    document.getElementById('momentumText').textContent = text;
+    momCard.style.display = '';
   } else {
-    document.getElementById('statAvgFinishYear').textContent = '—';
+    momCard.style.display = 'none';
   }
 
-  // ── Genre breakdowns (category + custom tags), all-time and this-year ──
-  const readAllTime = readBooks.filter(b => !b._currentlyReading);
-  renderGenreBars('genreBars', genreCountsFor(readAllTime));
-  renderGenreBars('genreBarsYear', genreCountsFor(booksThisYear));
+  // ── Genre breakdown (category + custom tags) with the This Year / All Time toggle ──
+  _genreCountsAll = genreCountsFor(readBooks.filter(b => !b._currentlyReading));
+  _genreCountsYear = genreCountsFor(booksThisYear);
+  renderGenreScope();
 }
 
 function openGoalEditor() {
