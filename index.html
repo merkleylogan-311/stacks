@@ -878,6 +878,12 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 
 .genre-breakdown h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+.stats-subhead {
+  font-size: 12px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 4px 2px -4px;
+}
+.genre-empty { font-size: 13px; color: var(--text3); }
 
 /* Year goal card */
 .year-goal-card {
@@ -2004,12 +2010,21 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
             <button onclick="saveYearlyGoal()">Save</button>
           </div>
         </div>
+        <h3 class="stats-subhead">This Year (<span id="statsYearLabel">2026</span>)</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-number gradient" id="statSavedYear">0</span><span class="stat-label">Books saved</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statReadYear">0</span><span class="stat-label">Books read</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statAvgRatingYear">—</span><span class="stat-label">Avg rating</span></div>
+          <div class="stat-card"><span class="stat-number gradient" id="statAvgFinishYear">—</span><span class="stat-label">Avg time to finish</span></div>
+        </div>
+        <h3 class="stats-subhead">All Time</h3>
         <div class="stats-grid">
           <div class="stat-card"><span class="stat-number gradient" id="statSaved">0</span><span class="stat-label">Books saved</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statRead">0</span><span class="stat-label">Books read</span></div>
           <div class="stat-card"><span class="stat-number gradient" id="statAvgRating">—</span><span class="stat-label">Avg rating</span></div>
         </div>
-        <div class="genre-breakdown"><h3>Genre Breakdown</h3><div class="genre-bar-container" id="genreBars"></div></div>
+        <div class="genre-breakdown"><h3>Genre Breakdown — This Year (<span id="genreYearLabel">2026</span>)</h3><div class="genre-bar-container" id="genreBarsYear"></div></div>
+        <div class="genre-breakdown"><h3>Genre Breakdown — All Time</h3><div class="genre-bar-container" id="genreBars"></div></div>
       </div>
     </div>
   </div>
@@ -4340,43 +4355,85 @@ function clearSearch() {
 document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
 // ─── Stats ───
+// Count books by genre, where a book's genres = its category PLUS every custom
+// tag it carries. A book can therefore contribute to more than one genre.
+function genreCountsFor(books) {
+  const counts = {};
+  for (const b of books) {
+    const set = new Set();
+    set.add(b._category || categorizeBook(b));
+    for (const t of (b._customTags || [])) set.add(t);
+    for (const g of set) if (g) counts[g] = (counts[g] || 0) + 1;
+  }
+  return counts;
+}
+
+function renderGenreBars(elId, counts) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const entries = Object.entries(counts).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) { el.innerHTML = '<div class="genre-empty">No books yet</div>'; return; }
+  const maxVal = Math.max(1, ...entries.map(e => e[1]));
+  el.innerHTML = entries.map(([key, val]) =>
+    `<div class="genre-bar-item"><div class="genre-bar-label"><span>${escHtml(tagDisplayName(key))}</span><span>${val}</span></div><div class="genre-bar"><div class="genre-bar-fill" style="width:${(val / maxVal) * 100}%"></div></div></div>`
+  ).join('');
+}
+
 function renderStats() {
+  const year = new Date().getFullYear();
+  const yStr = String(year);
+  document.getElementById('statsYearLabel').textContent = year;
+  document.getElementById('genreYearLabel').textContent = year;
+
+  // ── All-time ──
   document.getElementById('statSaved').textContent = stats.saved;
   document.getElementById('statRead').textContent = stats.read || 0;
-  // Only average books that actually have a rating (skip currently-reading / unrated)
   const ratedBooks = readBooks.filter(b => !b._currentlyReading && (b._rating || 0) > 0);
-  if (ratedBooks.length > 0) {
-    const avg = ratedBooks.reduce((s, b) => s + b._rating, 0) / ratedBooks.length;
-    document.getElementById('statAvgRating').textContent = avg.toFixed(1) + ' ★';
-  } else document.getElementById('statAvgRating').textContent = '—';
+  document.getElementById('statAvgRating').textContent = ratedBooks.length
+    ? (ratedBooks.reduce((s, b) => s + b._rating, 0) / ratedBooks.length).toFixed(1) + ' ★'
+    : '—';
 
-  // Yearly goal & pages
-  const year = new Date().getFullYear();
+  // ── Yearly goal & pages ──
   document.getElementById('yearGoalTitle').textContent = `${year} Reading Goal`;
-  // Only count books with an explicit _dateFinished in the current year.
-  // Ignore _dateRead — it was auto-populated during imports and doesn't
-  // reliably reflect when the book was actually finished. DNF books are
-  // excluded from the goal (you didn't finish them) but still show in the Read list.
-  const booksThisYear = readBooks.filter(b => {
-    if (b._dnf) return false;
-    const d = b._dateFinished || '';
-    return d.startsWith(String(year));
-  });
+  // Books finished this year (explicit _dateFinished; DNF excluded — you didn't finish them).
+  const booksThisYear = readBooks.filter(b => !b._dnf && (b._dateFinished || '').startsWith(yStr));
   const pagesThisYear = booksThisYear.reduce((s, b) => s + (b.number_of_pages_median || 0), 0);
   document.getElementById('yearBooksRead').textContent = booksThisYear.length;
   document.getElementById('yearGoal').textContent = stats.yearlyGoal || '—';
   document.getElementById('yearPagesRead').textContent = pagesThisYear.toLocaleString();
-  const pct = stats.yearlyGoal > 0
-    ? Math.min(100, Math.round((booksThisYear.length / stats.yearlyGoal) * 100))
-    : 0;
-  document.getElementById('yearGoalFill').style.width = pct + '%';
+  document.getElementById('yearGoalFill').style.width =
+    (stats.yearlyGoal > 0 ? Math.min(100, Math.round((booksThisYear.length / stats.yearlyGoal) * 100)) : 0) + '%';
 
-  const genreNames = { fiction: 'Fiction', science_fiction: 'Sci-Fi', memoir: 'Memoirs', 'self-help': 'Self-Help', business: 'Business', lds: 'LDS', technology: 'Technology' };
-  const maxVal = Math.max(1, ...Object.values(stats.genres));
-  document.getElementById('genreBars').innerHTML = Object.keys(genreNames).map(key => {
-    const val = stats.genres[key] || 0;
-    return `<div class="genre-bar-item"><div class="genre-bar-label"><span>${genreNames[key]}</span><span>${val}</span></div><div class="genre-bar"><div class="genre-bar-fill" style="width:${(val/maxVal)*100}%"></div></div></div>`;
-  }).join('');
+  // ── This-year stat cards ──
+  const savedThisYear = savedBooks.filter(b => b.savedAt && new Date(b.savedAt).getFullYear() === year).length;
+  document.getElementById('statSavedYear').textContent = savedThisYear;
+  document.getElementById('statReadYear').textContent = booksThisYear.length;
+
+  const ratedThisYear = readBooks.filter(b => !b._currentlyReading && (b._rating || 0) > 0 && (b._dateFinished || '').startsWith(yStr));
+  document.getElementById('statAvgRatingYear').textContent = ratedThisYear.length
+    ? (ratedThisYear.reduce((s, b) => s + b._rating, 0) / ratedThisYear.length).toFixed(1) + ' ★'
+    : '—';
+
+  // Average time to finish = mean of (finish date − start date) for books finished
+  // this year that have both dates.
+  const durations = booksThisYear.map(b => {
+    if (!b._dateStarted || !b._dateFinished) return null;
+    const days = (new Date(b._dateFinished + 'T00:00:00') - new Date(b._dateStarted + 'T00:00:00')) / 86400000;
+    return (isFinite(days) && days >= 0) ? days : null;
+  }).filter(d => d !== null);
+  if (durations.length) {
+    const avgDays = durations.reduce((a, b) => a + b, 0) / durations.length;
+    const rounded = Math.round(avgDays);
+    document.getElementById('statAvgFinishYear').textContent =
+      avgDays < 1 ? '<1 day' : rounded + (rounded === 1 ? ' day' : ' days');
+  } else {
+    document.getElementById('statAvgFinishYear').textContent = '—';
+  }
+
+  // ── Genre breakdowns (category + custom tags), all-time and this-year ──
+  const readAllTime = readBooks.filter(b => !b._currentlyReading);
+  renderGenreBars('genreBars', genreCountsFor(readAllTime));
+  renderGenreBars('genreBarsYear', genreCountsFor(booksThisYear));
 }
 
 function openGoalEditor() {
