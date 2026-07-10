@@ -9,6 +9,7 @@
 //   users/{uid}/friends/{friendUid}          // accepted friends (mutual)
 //   users/{uid}/incomingRequests/{fromUid}   // pending requests received
 //   users/{uid}/outgoingRequests/{toUid}     // pending requests sent
+//   users/{uid}/activity/{eventId}           // shareable reading activity (feed); likedBy: [uid]
 //   usernames/{handle}                        // { uid } — uniqueness lookup
 //
 // Privacy summary:
@@ -47,13 +48,13 @@ service cloud.firestore {
       allow create: if isSelf(uid)
                     && request.resource.data.keys().hasOnly(publicProfileFields());
 
+      // Owner may update public profile fields, including changing the username.
+      // Uniqueness of a new handle is enforced by the usernames/{handle} registry
+      // (claim fails if the doc already exists); releasing the old handle is a
+      // delete there. See usernames rules below.
       allow update: if isSelf(uid)
                     && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(publicProfileFields())
-                    && (
-                         !('username' in resource.data) ||
-                         request.resource.data.username == resource.data.username
-                       );
+                          .hasOnly(publicProfileFields());
 
       allow delete: if false; // never (could orphan friends' references)
 
@@ -94,19 +95,51 @@ service cloud.firestore {
         // Allow the recipient to delete the sender's outgoing record when accepting/declining.
         allow delete: if isSelf(toUid);
       }
+
+      // ── activity/{eventId} — shareable reading activity (the friends feed) ──
+      // Readable by the owner and the owner's friends (friendship is mutual, so the
+      // owner's friends subcollection contains the reader iff they're friends).
+      // Owner creates/updates/deletes the event. A friend may ONLY toggle their own
+      // membership in likedBy (like / unlike) — no other field, no other user's like.
+      match /activity/{eventId} {
+        allow read: if isSelf(uid)
+                    || (signedIn() && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid)));
+        allow create, delete: if isSelf(uid);
+        allow update: if isSelf(uid)
+          || (
+            signedIn()
+            && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
+            && (
+              // like: self not previously present, result == old ∪ {self}
+              ( !(request.auth.uid in resource.data.likedBy)
+                && (request.auth.uid in request.resource.data.likedBy)
+                && request.resource.data.likedBy.hasAll(resource.data.likedBy)
+                && request.resource.data.likedBy.hasOnly(resource.data.likedBy.concat([request.auth.uid])) )
+              ||
+              // unlike: self previously present, result == old − {self}
+              ( (request.auth.uid in resource.data.likedBy)
+                && !(request.auth.uid in request.resource.data.likedBy)
+                && resource.data.likedBy.hasAll(request.resource.data.likedBy) )
+            )
+          );
+      }
     }
 
     // ── usernames/{handle} — uniqueness lookup ─────────────────────────
     // Anyone signed in can read (to check availability and resolve handle → uid).
     // Create is allowed only if the writer claims it for themselves and the handle
     // matches the allowed format (lowercase, 3–20 chars, alnum + underscore).
-    // No updates or deletes for Phase 1 — username changes come later.
+    // Delete is allowed only for the owner, so a user can release their old handle
+    // when changing it. Updates are never allowed (a handle can't be reassigned in
+    // place — you release it and someone else can then claim it fresh).
     match /usernames/{handle} {
       allow read: if signedIn();
       allow create: if signedIn()
                     && request.resource.data.uid == request.auth.uid
                     && handle.matches('^[a-z0-9_]{3,20}$');
-      allow update, delete: if false;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
     }
   }
 }

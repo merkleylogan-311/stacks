@@ -1615,6 +1615,41 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 .profile-action-btn:hover { background: var(--surface2); color: var(--text); }
 
+/* Settings section inside the account sheet */
+.settings-section { margin-top: 16px; }
+.settings-head {
+  font-size: 12px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.05em; margin: 0 2px 8px;
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; padding: 11px 14px; margin-top: 8px; border-radius: 12px;
+  border: 1px solid var(--border); background: none; box-sizing: border-box;
+}
+.settings-row:first-of-type { margin-top: 0; }
+.settings-toggle-row { cursor: pointer; }
+.settings-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.settings-row-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.settings-row-sub { font-size: 12px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-row-action {
+  flex-shrink: 0; padding: 7px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: background 0.15s;
+}
+.settings-row-action:hover { background: var(--surface3); }
+.share-switch {
+  appearance: none; -webkit-appearance: none; flex-shrink: 0;
+  width: 44px; height: 26px; border-radius: 999px; background: var(--surface3);
+  border: 1px solid var(--border); position: relative; cursor: pointer; transition: background 0.15s;
+}
+.share-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: #fff; transition: transform 0.15s;
+}
+.share-switch:checked { background: var(--accent-solid); border-color: var(--accent-solid); }
+.share-switch:checked::after { transform: translateX(18px); }
+
 /* Goodreads Import Modal */
 .import-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -1787,27 +1822,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 .feed-like .feed-like-heart { font-size: 15px; line-height: 1; }
 .feed-like.liked { color: var(--red); border-color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
 .feed-like-count { font-variant-numeric: tabular-nums; }
-
-/* ── Share-activity toggle (Profile tab) ── */
-.share-toggle {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 12px 14px; margin: 0 16px 4px; border: 1px solid var(--border);
-  border-radius: 14px; background: var(--surface2); cursor: pointer;
-}
-.share-toggle-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.share-toggle-title { font-size: 14px; font-weight: 700; }
-.share-toggle-sub { font-size: 12px; color: var(--text3); }
-.share-toggle input[type="checkbox"] {
-  appearance: none; -webkit-appearance: none; flex-shrink: 0;
-  width: 44px; height: 26px; border-radius: 999px; background: var(--surface3);
-  border: 1px solid var(--border); position: relative; cursor: pointer; transition: background 0.15s;
-}
-.share-toggle input[type="checkbox"]::after {
-  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
-  border-radius: 50%; background: #fff; transition: transform 0.15s;
-}
-.share-toggle input[type="checkbox"]:checked { background: var(--accent-solid); border-color: var(--accent-solid); }
-.share-toggle input[type="checkbox"]:checked::after { transform: translateX(18px); }
 
 /* ── Username Claim Modal ── */
 .username-overlay {
@@ -2085,14 +2099,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         </div>
       </div>
       <button class="profile-tab-claim-btn" id="profileTabClaimBtn" style="display:none" onclick="openUsernameModal()">Pick a username to connect with friends</button>
-
-      <label class="share-toggle" id="shareToggleRow" style="display:none">
-        <div class="share-toggle-text">
-          <span class="share-toggle-title">Share reading activity</span>
-          <span class="share-toggle-sub">Let friends see the books you finish and review</span>
-        </div>
-        <input type="checkbox" id="shareToggleInput" onchange="setShareActivity(this.checked)">
-      </label>
 
       <div class="stats">
         <h2>Your Stats</h2>
@@ -2381,8 +2387,8 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 <!-- Username Claim Modal -->
 <div class="username-overlay hidden" id="usernameOverlay">
   <div class="username-card">
-    <h2>Pick a username</h2>
-    <p>Your username lets friends find you and follow your reading. Usernames can't be changed yet, so choose carefully. Lowercase letters, numbers, and underscores (3–20 chars).</p>
+    <h2 id="usernameModalTitle">Pick a username</h2>
+    <p id="usernameModalSub">Your username lets friends find you and follow your reading. Lowercase letters, numbers, and underscores (3–20 chars).</p>
     <div class="username-input-row">
       <span class="username-input-prefix">@</span>
       <input type="text" class="username-input" id="usernameInput" maxlength="20" autocomplete="off" placeholder="your_handle" oninput="onUsernameInput()">
@@ -4796,7 +4802,29 @@ function renderProfileList() {
         </div>
         <div class="profile-active-dot"></div>
       </div>
-      <button class="profile-action-btn" onclick="triggerPhotoUpload()">📷 Change Photo</button>
+
+      <div class="settings-section">
+        <div class="settings-head">Settings</div>
+        ${_profile?.username ? `
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <span class="settings-row-title">Username</span>
+              <span class="settings-row-sub">@${escHtml(_profile.username)}</span>
+            </div>
+            <button class="settings-row-action" onclick="openUsernameModal('change')">Change</button>
+          </div>` : `
+          <button class="profile-action-btn" style="margin-top:0" onclick="openUsernameModal('claim')">🔗 Pick a username</button>`}
+        <button class="profile-action-btn" onclick="triggerPhotoUpload()">📷 Change Photo</button>
+        ${_profile?.username ? `
+          <label class="settings-row settings-toggle-row">
+            <div class="settings-row-text">
+              <span class="settings-row-title">Share reading activity</span>
+              <span class="settings-row-sub">Friends see books you finish &amp; review</span>
+            </div>
+            <input type="checkbox" class="share-switch" ${_shareActivity ? 'checked' : ''} onchange="setShareActivity(this.checked)">
+          </label>` : ''}
+      </div>
+
       <button class="profile-action-btn" onclick="closeProfileModal();openImportModal()">📚 Import from Goodreads</button>`;
     if (addBtn) addBtn.style.display = 'none';
     document.getElementById('profileNewRow').classList.remove('visible');
@@ -5569,9 +5597,18 @@ async function loadSocialState() {
   }
 }
 
-// ─── Username claim ───
-function openUsernameModal() {
+// ─── Username claim / change ───
+let _usernameMode = 'claim'; // 'claim' (first time) | 'change'
+function openUsernameModal(mode) {
   if (!currentUser || !_fbDb) { showToast('Sign in to pick a username'); return; }
+  _usernameMode = mode === 'change' ? 'change' : 'claim';
+  const changing = _usernameMode === 'change';
+  document.getElementById('usernameModalTitle').textContent = changing ? 'Change username' : 'Pick a username';
+  document.getElementById('usernameModalSub').textContent = changing
+    ? `You're @${_profile?.username || ''}. Pick a new handle — the old one is released so someone else could take it. Lowercase letters, numbers, and underscores (3–20 chars).`
+    : 'Your username lets friends find you and follow your reading. Lowercase letters, numbers, and underscores (3–20 chars).';
+  document.getElementById('usernameSaveBtn').textContent = changing ? 'Save username' : 'Claim username';
+  closeProfileModal();
   document.getElementById('usernameOverlay').classList.remove('hidden');
   document.getElementById('usernameInput').value = '';
   document.getElementById('usernameStatus').textContent = '';
@@ -5594,6 +5631,9 @@ function onUsernameInput() {
   btn.disabled = true;
   if (!v) { status.textContent = ''; status.className = 'username-status'; return; }
   if (v.length < 3) { status.textContent = 'At least 3 characters'; status.className = 'username-status err'; return; }
+  if (_usernameMode === 'change' && v === _profile?.username) {
+    status.textContent = 'That’s already your username'; status.className = 'username-status'; return;
+  }
   status.textContent = 'Checking…'; status.className = 'username-status';
   clearTimeout(_usernameCheckTimer);
   _usernameCheckTimer = setTimeout(async () => {
@@ -5617,22 +5657,35 @@ async function saveUsername() {
   if (!currentUser || !_fbDb) return;
   const v = document.getElementById('usernameInput').value;
   if (!v || v.length < 3) return;
+  const oldHandle = _profile?.username || null;
+  const changing = _usernameMode === 'change' && oldHandle;
+  if (changing && v === oldHandle) { closeUsernameModal(); return; }
   const btn = document.getElementById('usernameSaveBtn');
   btn.disabled = true;
   try {
-    // Reserve the username atomically: one batch creates usernames/{v} (rules reject if taken)
-    // and writes the handle to the user doc — so a partial failure can't strand the handle.
+    // One atomic batch so a partial failure can't strand a handle:
+    //   - claim usernames/{v} (rules reject if already taken → whole batch fails)
+    //   - point the user doc at the new handle
+    //   - on change: release the old handle + refresh the denormalized copy of my
+    //     handle in each friend's friends list (that's where friends see my @handle)
     const batch = _fbDb.batch();
     batch.set(_fbDb.collection('usernames').doc(v), { uid: currentUser.uid, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
     batch.set(_fbDb.collection('users').doc(currentUser.uid), { username: v }, { merge: true });
+    if (changing) {
+      batch.delete(_fbDb.collection('usernames').doc(oldHandle));
+      _friends.forEach(f => {
+        batch.set(_fbDb.collection('users').doc(f.uid).collection('friends').doc(currentUser.uid), { username: v }, { merge: true });
+      });
+    }
     await batch.commit();
     _profile.username = v;
     closeUsernameModal();
-    showToast('Username @' + v + ' claimed');
+    showToast(changing ? 'Username changed to @' + v : 'Username @' + v + ' claimed');
     renderProfileTab();
+    renderFriendsSection();
   } catch (e) {
     console.warn('saveUsername failed:', e);
-    document.getElementById('usernameStatus').textContent = 'Could not claim — try a different one';
+    document.getElementById('usernameStatus').textContent = changing ? 'Could not change — try a different one' : 'Could not claim — try a different one';
     document.getElementById('usernameStatus').className = 'username-status err';
     btn.disabled = false;
   }
@@ -5776,7 +5829,6 @@ function renderProfileTab() {
     document.getElementById('profileTabHandle').textContent = 'Sign in to connect with friends';
     document.getElementById('profileTabFriendCount').textContent = '';
     document.getElementById('profileTabClaimBtn').style.display = 'none';
-    document.getElementById('shareToggleRow').style.display = 'none';
     return;
   }
   const avatarEl = document.getElementById('profileTabAvatar');
@@ -5789,10 +5841,6 @@ function renderProfileTab() {
     _profile?.username ? `${_friends.length} friend${_friends.length === 1 ? '' : 's'}` : '';
   // Prompt to claim a username (the friend/feed experience lives on the Friends tab).
   document.getElementById('profileTabClaimBtn').style.display = _profile?.username ? 'none' : '';
-  // Share-activity opt-out — only meaningful once the user can have friends.
-  const shareRow = document.getElementById('shareToggleRow');
-  shareRow.style.display = _profile?.username ? 'flex' : 'none';
-  document.getElementById('shareToggleInput').checked = _shareActivity;
 }
 
 function renderFriendsSection() {
