@@ -1752,6 +1752,63 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   padding: 14px; border: 1px dashed var(--border); border-radius: 12px;
 }
 
+/* ── Activity feed ── */
+.feed-head { font-size: 13px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.04em; margin: 4px 0 2px; }
+.feed-loading { font-size: 13px; color: var(--text3); padding: 10px 2px; }
+.feed-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+}
+.feed-item-head { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.feed-who { font-size: 13px; color: var(--text2); line-height: 1.35; }
+.feed-name { font-weight: 700; color: var(--text); }
+.feed-time { color: var(--text3); }
+.feed-book { display: flex; gap: 12px; cursor: pointer; }
+.feed-cover {
+  width: 52px; height: 78px; border-radius: 6px; object-fit: cover;
+  flex-shrink: 0; background: var(--surface3);
+}
+.feed-book-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+.feed-book-title { font-size: 15px; font-weight: 700; line-height: 1.25; }
+.feed-book-author { font-size: 13px; color: var(--text2); }
+.feed-stars { font-size: 13px; color: var(--accent-solid); font-weight: 600; margin-top: 2px; }
+.feed-review {
+  font-size: 14px; color: var(--text); line-height: 1.45;
+  background: var(--surface3); border-radius: 10px; padding: 10px 12px;
+  white-space: pre-wrap; word-break: break-word;
+}
+.feed-like {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface3); color: var(--text2); font-family: inherit;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.feed-like .feed-like-heart { font-size: 15px; line-height: 1; }
+.feed-like.liked { color: var(--red); border-color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.feed-like-count { font-variant-numeric: tabular-nums; }
+
+/* ── Share-activity toggle (Profile tab) ── */
+.share-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 14px; margin: 0 16px 4px; border: 1px solid var(--border);
+  border-radius: 14px; background: var(--surface2); cursor: pointer;
+}
+.share-toggle-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.share-toggle-title { font-size: 14px; font-weight: 700; }
+.share-toggle-sub { font-size: 12px; color: var(--text3); }
+.share-toggle input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; flex-shrink: 0;
+  width: 44px; height: 26px; border-radius: 999px; background: var(--surface3);
+  border: 1px solid var(--border); position: relative; cursor: pointer; transition: background 0.15s;
+}
+.share-toggle input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: #fff; transition: transform 0.15s;
+}
+.share-toggle input[type="checkbox"]:checked { background: var(--accent-solid); border-color: var(--accent-solid); }
+.share-toggle input[type="checkbox"]:checked::after { transform: translateX(18px); }
+
 /* ── Username Claim Modal ── */
 .username-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -2028,6 +2085,14 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         </div>
       </div>
       <button class="profile-tab-claim-btn" id="profileTabClaimBtn" style="display:none" onclick="openUsernameModal()">Pick a username to connect with friends</button>
+
+      <label class="share-toggle" id="shareToggleRow" style="display:none">
+        <div class="share-toggle-text">
+          <span class="share-toggle-title">Share reading activity</span>
+          <span class="share-toggle-sub">Let friends see the books you finish and review</span>
+        </div>
+        <input type="checkbox" id="shareToggleInput" onchange="setShareActivity(this.checked)">
+      </label>
 
       <div class="stats">
         <h2>Your Stats</h2>
@@ -3953,6 +4018,7 @@ function confirmMarkRead() {
       rb._currentlyReading = false;
       saveReadBooks();
       renderReadList();
+      writeActivityEvent(rb);
       showToast(wasReading ? `Finished "${rb.title}"` : `Updated "${rb.title}"`);
     }
     editingBookKey = null;
@@ -3983,6 +4049,7 @@ function confirmMarkRead() {
     saveReadBooks();
     stats.read = (stats.read || 0) + 1;
     saveStats();
+    writeActivityEvent(readBooks[0]);
   }
   savedBooks = savedBooks.filter(b => bookKey(b) !== key); saveSavedBooks();
   seenKeys.add(key); seenKeys.add(titleKey(book)); saveSeenKeys();
@@ -4423,9 +4490,6 @@ document.getElementById('searchInput').addEventListener('input', e => {
   document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
   if (!e.target.value && _searchMode) clearSearch();
 });
-
-// Activity feed — implemented in Phase B; stub keeps switchTab safe until then.
-function renderFeed() {}
 
 // ─── Stats ───
 // Count books by genre, where a book's genres = its category PLUS every custom
@@ -5127,6 +5191,7 @@ async function pushToFirestore() {
       seen: [...seenKeys],
       passed: passedBooks,
       customPhotoURL: _customPhotoURL || null,
+      shareActivity: _shareActivity,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     _saveFailureStreak = 0;
@@ -5169,6 +5234,7 @@ async function loadFromFirestore() {
       seenKeys = new Set(d.seen || []);
       passedBooks = d.passed || [];
       _customPhotoURL = d.customPhotoURL || null;
+      _shareActivity = d.shareActivity !== false; // default on (opt-out)
       // Cache locally for offline use
       localStorage.setItem(profileKey('saved'), JSON.stringify(savedBooks));
       localStorage.setItem(profileKey('read'), JSON.stringify(readBooks));
@@ -5294,8 +5360,165 @@ let _friends = [];                    // [{ uid, username, displayName, photoURL
 let _incomingRequests = [];           // [{ uid, username, displayName, photoURL, sentAt }]
 let _outgoingRequests = [];           // [{ uid, username, displayName, photoURL, sentAt }]
 let _userSearchDebounce = null;
+let _shareActivity = true;            // opt-out: auto-share reads with friends
+let _feedItems = [];                  // cached feed items for re-render on like
 
 function isSocialReady() { return !!(currentUser && _fbDb && _profile && _profile.username); }
+
+// ─── Activity feed ───
+function timeAgo(date) {
+  const s = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = s / 60; if (m < 60) return Math.floor(m) + 'm ago';
+  const h = m / 60; if (h < 24) return Math.floor(h) + 'h ago';
+  const d = h / 24; if (d < 7) return Math.floor(d) + 'd ago';
+  const w = d / 7; if (w < 5) return Math.floor(w) + 'w ago';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function activityIdForBook(book) {
+  return 'read_' + titleKey(book).replace(/[^a-z0-9_-]/g, '').slice(0, 90);
+}
+
+// Write/refresh a shareable activity event when a book is marked read (or re-rated).
+async function writeActivityEvent(book) {
+  if (!isSocialReady() || !_shareActivity) return;
+  if (book._dnf || book._currentlyReading) return; // only genuinely finished books
+  try {
+    const ref = _fbDb.collection('users').doc(currentUser.uid).collection('activity').doc(activityIdForBook(book));
+    const existing = await ref.get();
+    await ref.set({
+      type: 'read',
+      bookKey: bookKey(book),
+      bookTitle: book.title || '',
+      bookAuthor: (book.author_name || [])[0] || '',
+      bookCover: getCoverUrl(book) || '',
+      rating: typeof book._rating === 'number' ? book._rating : null,
+      review: (book._review || '').slice(0, 2000) || null,
+      // Keep original timestamp on re-rate so items don't jump to the top of the feed.
+      createdAt: (existing.exists && existing.data().createdAt) ? existing.data().createdAt : firebase.firestore.FieldValue.serverTimestamp(),
+      likedBy: existing.exists ? (existing.data().likedBy || []) : []
+    });
+  } catch (e) { console.warn('writeActivityEvent failed:', e?.code || e?.message); }
+}
+
+// One-time backfill of recent finished + rated books into the activity feed.
+async function backfillActivity() {
+  if (!isSocialReady() || !_shareActivity) return;
+  const flag = 'stacks_activity_backfilled_' + currentUser.uid;
+  if (localStorage.getItem(flag)) return;
+  try {
+    const candidates = readBooks
+      .filter(b => !b._dnf && !b._currentlyReading && (b._rating || 0) > 0)
+      .sort((a, b) => (b._dateFinished || b._dateRead || '').localeCompare(a._dateFinished || a._dateRead || ''))
+      .slice(0, 40);
+    if (candidates.length) {
+      const batch = _fbDb.batch();
+      for (const book of candidates) {
+        const when = book._dateFinished || book._dateRead;
+        const ts = when ? firebase.firestore.Timestamp.fromDate(new Date(when + 'T12:00:00'))
+                        : firebase.firestore.FieldValue.serverTimestamp();
+        batch.set(_fbDb.collection('users').doc(currentUser.uid).collection('activity').doc(activityIdForBook(book)), {
+          type: 'read',
+          bookKey: bookKey(book),
+          bookTitle: book.title || '',
+          bookAuthor: (book.author_name || [])[0] || '',
+          bookCover: getCoverUrl(book) || '',
+          rating: book._rating || null,
+          review: (book._review || '').slice(0, 2000) || null,
+          createdAt: ts,
+          likedBy: []
+        });
+      }
+      await batch.commit();
+    }
+    localStorage.setItem(flag, '1');
+  } catch (e) { console.warn('backfillActivity failed:', e?.code || e?.message); }
+}
+
+async function renderFeed() {
+  const wrap = document.getElementById('feedWrap');
+  if (!wrap) return;
+  if (!isSocialReady()) { wrap.innerHTML = ''; return; }
+  if (!_friends.length) {
+    wrap.innerHTML = `<h3 class="feed-head">Activity</h3><div class="friends-empty">Add friends to see their reading activity here.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<h3 class="feed-head">Activity</h3><div class="feed-loading">Loading activity…</div>`;
+  try {
+    const perFriend = await Promise.all(_friends.map(f =>
+      _fbDb.collection('users').doc(f.uid).collection('activity').orderBy('createdAt', 'desc').limit(8).get()
+        .then(snap => snap.docs.map(d => ({ id: d.id, uid: f.uid, friend: f, ...d.data() })))
+        .catch(() => [])
+    ));
+    _feedItems = perFriend.flat()
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+      .slice(0, 40);
+    if (!_feedItems.length) {
+      wrap.innerHTML = `<h3 class="feed-head">Activity</h3><div class="friends-empty">No activity yet — your friends' finished books will show up here.</div>`;
+      return;
+    }
+    wrap.innerHTML = `<h3 class="feed-head">Activity</h3>` + _feedItems.map(renderFeedItem).join('');
+  } catch (e) {
+    console.warn('renderFeed failed:', e?.code || e?.message);
+    wrap.innerHTML = `<h3 class="feed-head">Activity</h3><div class="friends-empty">Couldn't load activity right now.</div>`;
+  }
+}
+
+function renderFeedItem(item) {
+  const f = item.friend || {};
+  const liked = (item.likedBy || []).includes(currentUser.uid);
+  const likeCount = (item.likedBy || []).length;
+  const stars = item.rating ? starsStr(item.rating) : '';
+  const when = item.createdAt?.toDate ? timeAgo(item.createdAt.toDate()) : '';
+  return `<div class="feed-item">
+    <div class="feed-item-head" onclick="viewUserProfile('${item.uid}')">
+      <div class="user-row-avatar">${f.photoURL ? `<img src="${escUser(f.photoURL)}">` : escUser(initialsOf(f.displayName))}</div>
+      <div class="feed-who"><span class="feed-name">${escUser(f.displayName)}</span> finished a book${when ? ` · <span class="feed-time">${when}</span>` : ''}</div>
+    </div>
+    <div class="feed-book" onclick="openFeedBook(${_feedItems.indexOf(item)})">
+      ${item.bookCover ? `<img class="feed-cover" src="${escUser(item.bookCover)}" alt="">` : '<div class="feed-cover"></div>'}
+      <div class="feed-book-info">
+        <div class="feed-book-title">${escUser(item.bookTitle)}</div>
+        <div class="feed-book-author">${escUser(item.bookAuthor)}</div>
+        ${stars ? `<div class="feed-stars">${stars} ${item.rating.toFixed(1)}</div>` : ''}
+      </div>
+    </div>
+    ${item.review ? `<div class="feed-review">${escUser(item.review)}</div>` : ''}
+    <button class="feed-like ${liked ? 'liked' : ''}" onclick="toggleLike('${item.uid}','${escUser(item.id)}')">
+      <span class="feed-like-heart">${liked ? '♥' : '♡'}</span>${likeCount ? `<span class="feed-like-count">${likeCount}</span>` : ''}
+    </button>
+  </div>`;
+}
+
+function openFeedBook(i) {
+  const item = _feedItems[i];
+  if (!item) return;
+  showDetail({ title: item.bookTitle, author_name: item.bookAuthor ? [item.bookAuthor] : [], key: item.bookKey, _coverUrl: item.bookCover });
+}
+
+async function toggleLike(ownerUid, eventId) {
+  if (!isSocialReady()) return;
+  const item = _feedItems.find(x => x.uid === ownerUid && x.id === eventId);
+  if (!item) return;
+  const liked = (item.likedBy || []).includes(currentUser.uid);
+  item.likedBy = liked ? (item.likedBy || []).filter(u => u !== currentUser.uid) : [...(item.likedBy || []), currentUser.uid];
+  document.getElementById('feedWrap').innerHTML = `<h3 class="feed-head">Activity</h3>` + _feedItems.map(renderFeedItem).join('');
+  try {
+    await _fbDb.collection('users').doc(ownerUid).collection('activity').doc(eventId).update({
+      likedBy: liked ? firebase.firestore.FieldValue.arrayRemove(currentUser.uid) : firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    });
+  } catch (e) {
+    console.warn('toggleLike failed:', e?.code || e?.message);
+    item.likedBy = liked ? [...(item.likedBy || []), currentUser.uid] : (item.likedBy || []).filter(u => u !== currentUser.uid);
+    document.getElementById('feedWrap').innerHTML = `<h3 class="feed-head">Activity</h3>` + _feedItems.map(renderFeedItem).join('');
+  }
+}
+
+function setShareActivity(v) {
+  _shareActivity = !!v;
+  if (currentUser && _fbDb) scheduleFirestoreSave(); // persists shareActivity in private state
+}
 
 function escUser(u) { return escHtml(u || ''); }
 
@@ -5553,6 +5776,7 @@ function renderProfileTab() {
     document.getElementById('profileTabHandle').textContent = 'Sign in to connect with friends';
     document.getElementById('profileTabFriendCount').textContent = '';
     document.getElementById('profileTabClaimBtn').style.display = 'none';
+    document.getElementById('shareToggleRow').style.display = 'none';
     return;
   }
   const avatarEl = document.getElementById('profileTabAvatar');
@@ -5565,6 +5789,10 @@ function renderProfileTab() {
     _profile?.username ? `${_friends.length} friend${_friends.length === 1 ? '' : 's'}` : '';
   // Prompt to claim a username (the friend/feed experience lives on the Friends tab).
   document.getElementById('profileTabClaimBtn').style.display = _profile?.username ? 'none' : '';
+  // Share-activity opt-out — only meaningful once the user can have friends.
+  const shareRow = document.getElementById('shareToggleRow');
+  shareRow.style.display = _profile?.username ? 'flex' : 'none';
+  document.getElementById('shareToggleInput').checked = _shareActivity;
 }
 
 function renderFriendsSection() {
@@ -5744,6 +5972,7 @@ if (FIREBASE_CONFIGURED && _fbAuth) {
       await loadFromFirestore();
       await ensureProfileDoc();
       await loadSocialState();
+      backfillActivity(); // one-time, fire-and-forget
       hideAuthOverlay();
       hideSplash();
       if (_appInited) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stacks-v27';
+const CACHE_NAME = 'stacks-v28';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
