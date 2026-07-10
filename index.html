@@ -1615,12 +1615,16 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }
 .profile-action-btn:hover { background: var(--surface2); color: var(--text); }
 
-/* Settings section inside the account sheet */
-.settings-section { margin-top: 16px; }
-.settings-head {
-  font-size: 12px; font-weight: 700; color: var(--text3);
-  text-transform: uppercase; letter-spacing: 0.05em; margin: 0 2px 8px;
+/* Settings sheet (nested under the account sheet) */
+.settings-sheet-head { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+.settings-back-btn {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--surface2); border: none; color: var(--text);
+  font-size: 22px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
 }
+.settings-back-btn:hover { background: var(--surface3); }
 .settings-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; padding: 11px 14px; margin-top: 8px; border-radius: 12px;
@@ -2365,6 +2369,18 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     </div>
     <input type="file" id="photoFileInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
     <button class="profile-signout-btn" id="profileSignOutBtn" onclick="authSignOut()" style="display:none">Sign Out</button>
+  </div>
+</div>
+
+<!-- Settings Sheet (nested under the Account sheet) -->
+<div class="profile-overlay" id="settingsOverlay" onclick="closeSettingsSheet(event)">
+  <div class="profile-sheet" onclick="event.stopPropagation()">
+    <div class="profile-handle"></div>
+    <div class="settings-sheet-head">
+      <button class="settings-back-btn" onclick="backToAccountSheet()" aria-label="Back to account">‹</button>
+      <div class="profile-sheet-title" style="margin-bottom:0">Settings</div>
+    </div>
+    <div id="settingsList"></div>
   </div>
 </div>
 
@@ -4803,28 +4819,7 @@ function renderProfileList() {
         <div class="profile-active-dot"></div>
       </div>
 
-      <div class="settings-section">
-        <div class="settings-head">Settings</div>
-        ${_profile?.username ? `
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Username</span>
-              <span class="settings-row-sub">@${escHtml(_profile.username)}</span>
-            </div>
-            <button class="settings-row-action" onclick="openUsernameModal('change')">Change</button>
-          </div>` : `
-          <button class="profile-action-btn" style="margin-top:0" onclick="openUsernameModal('claim')">🔗 Pick a username</button>`}
-        <button class="profile-action-btn" onclick="triggerPhotoUpload()">📷 Change Photo</button>
-        ${_profile?.username ? `
-          <label class="settings-row settings-toggle-row">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Share reading activity</span>
-              <span class="settings-row-sub">Friends see books you finish &amp; review</span>
-            </div>
-            <input type="checkbox" class="share-switch" ${_shareActivity ? 'checked' : ''} onchange="setShareActivity(this.checked)">
-          </label>` : ''}
-      </div>
-
+      <button class="profile-action-btn" onclick="openSettingsSheet()">⚙️ Settings</button>
       <button class="profile-action-btn" onclick="closeProfileModal();openImportModal()">📚 Import from Goodreads</button>`;
     if (addBtn) addBtn.style.display = 'none';
     document.getElementById('profileNewRow').classList.remove('visible');
@@ -4856,6 +4851,60 @@ function showProfileModal() {
 function closeProfileModal(e) {
   if (e && e.target !== document.getElementById('profileOverlay')) return;
   document.getElementById('profileOverlay').classList.remove('open');
+}
+
+// ─── Settings sheet (nested under Account) ───
+function renderSettingsSheet() {
+  const el = document.getElementById('settingsList');
+  if (!el) return;
+  const hasHandle = !!_profile?.username;
+  el.innerHTML = `
+    ${hasHandle ? `
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <span class="settings-row-title">Username</span>
+          <span class="settings-row-sub">@${escHtml(_profile.username)}</span>
+        </div>
+        <button class="settings-row-action" onclick="openUsernameModal('change')">Change</button>
+      </div>` : `
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <span class="settings-row-title">Username</span>
+          <span class="settings-row-sub">Pick a handle so friends can find you</span>
+        </div>
+        <button class="settings-row-action" onclick="openUsernameModal('claim')">Pick</button>
+      </div>`}
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <span class="settings-row-title">Profile photo</span>
+        <span class="settings-row-sub">Update the picture friends see</span>
+      </div>
+      <button class="settings-row-action" onclick="triggerPhotoUpload()">Change</button>
+    </div>
+    ${hasHandle ? `
+      <label class="settings-row settings-toggle-row">
+        <div class="settings-row-text">
+          <span class="settings-row-title">Share reading activity</span>
+          <span class="settings-row-sub">Friends see books you finish &amp; review</span>
+        </div>
+        <input type="checkbox" class="share-switch" ${_shareActivity ? 'checked' : ''} onchange="setShareActivity(this.checked)">
+      </label>` : ''}`;
+}
+
+function openSettingsSheet() {
+  renderSettingsSheet();
+  document.getElementById('profileOverlay').classList.remove('open');
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+
+function closeSettingsSheet(e) {
+  if (e && e.target !== document.getElementById('settingsOverlay')) return;
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function backToAccountSheet() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+  showProfileModal();
 }
 
 function toggleNewProfileForm() {
@@ -5609,6 +5658,7 @@ function openUsernameModal(mode) {
     : 'Your username lets friends find you and follow your reading. Lowercase letters, numbers, and underscores (3–20 chars).';
   document.getElementById('usernameSaveBtn').textContent = changing ? 'Save username' : 'Claim username';
   closeProfileModal();
+  document.getElementById('settingsOverlay').classList.remove('open');
   document.getElementById('usernameOverlay').classList.remove('hidden');
   document.getElementById('usernameInput').value = '';
   document.getElementById('usernameStatus').textContent = '';
