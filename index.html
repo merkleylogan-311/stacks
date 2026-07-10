@@ -1059,8 +1059,23 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
   cursor: pointer;
 }
 
-.search-results { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-.search-results:empty { margin-top: 0; }
+.search-results { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 20px; }
+
+/* Discover search bar (above the category pills) */
+.discover-search {
+  display: flex; gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Friends tab */
+.friends-screen { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.friends-title { font-size: 21px; font-weight: 800; }
+.friends-signin-hint {
+  font-size: 13px; color: var(--text3); text-align: center;
+  padding: 28px 16px; border: 1px dashed var(--border); border-radius: 12px;
+}
 
 .search-result-item {
   display: flex;
@@ -1883,6 +1898,14 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
     </div>
   </div>
 
+  <div class="discover-search" id="discoverSearchBar">
+    <div class="search-input-wrap">
+      <input class="search-input" id="searchInput" placeholder="Search books, authors…" type="text" enterkeyhint="search" autocorrect="off" autocapitalize="none" autocomplete="off" spellcheck="false">
+      <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
+    </div>
+    <button class="search-go" onclick="doSearch()">Search</button>
+  </div>
+
   <div class="category-pills" id="categoryPills">
     <button class="cat-pill active" data-cat="all" onclick="selectCategory('all')">All</button>
     <button class="cat-pill for-you" data-cat="for-you" onclick="selectCategory('for-you')">For You</button>
@@ -1914,6 +1937,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         </div>
         <div class="empty-state" id="emptyState" style="display:none;"><div class="emoji">📚</div><h3>No more books!</h3><p>Switch categories or search to find more</p></div>
       </div>
+      <div class="search-results" id="searchResults" style="display:none"></div>
     </div>
 
     <!-- Library -->
@@ -1977,18 +2001,19 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="screen" id="screen-search">
-      <div class="search-screen">
-        <h2>Search</h2>
-        <div class="search-bar">
-          <div class="search-input-wrap">
-            <input class="search-input" id="searchInput" placeholder="Search books, authors..." type="text" enterkeyhint="search" autocorrect="off" autocapitalize="none" autocomplete="off" spellcheck="false">
-            <button class="search-clear" id="searchClear" aria-label="Clear search" onclick="clearSearch()">✕</button>
-          </div>
-          <button class="search-go" onclick="doSearch()">Search</button>
+    <!-- Friends -->
+    <div class="screen" id="screen-friends">
+      <div class="friends-screen">
+        <h2 class="friends-title">Friends</h2>
+        <div class="friends-search-wrap">
+          <input type="text" class="friends-search-input" id="friendsSearchInput" placeholder="Search people by @handle or name" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
         </div>
-        <div class="search-results" id="searchResults"></div>
+        <div id="friendsSearchResults"></div>
+        <div id="incomingRequestsWrap"></div>
+        <div id="outgoingRequestsWrap"></div>
+        <div id="feedWrap"></div>
+        <div id="friendsListWrap"></div>
+        <div class="friends-signin-hint" id="friendsSigninHint" style="display:none">Sign in and pick a username to connect with friends.</div>
       </div>
     </div>
 
@@ -2003,17 +2028,6 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
         </div>
       </div>
       <button class="profile-tab-claim-btn" id="profileTabClaimBtn" style="display:none" onclick="openUsernameModal()">Pick a username to connect with friends</button>
-
-      <div class="profile-tab-section" id="friendsSection" style="display:none">
-        <h3>Friends</h3>
-        <div class="friends-search-wrap">
-          <input type="text" class="friends-search-input" id="friendsSearchInput" placeholder="Search by @handle or name" autocomplete="off">
-        </div>
-        <div id="friendsSearchResults"></div>
-        <div id="incomingRequestsWrap"></div>
-        <div id="outgoingRequestsWrap"></div>
-        <div id="friendsListWrap"></div>
-      </div>
 
       <div class="stats">
         <h2>Your Stats</h2>
@@ -2066,7 +2080,7 @@ body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 
   <nav class="nav">
     <button class="nav-btn active" data-tab="discover" onclick="switchTab('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Discover</button>
-    <button class="nav-btn" data-tab="search" onclick="switchTab('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Search</button>
+    <button class="nav-btn" data-tab="friends" onclick="switchTab('friends')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Friends</button>
     <button class="nav-btn" data-tab="library" onclick="switchTab('library')"><svg class="nav-stacks-icon" viewBox="0 0 30 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:22px"><rect x="0.5" y="3" width="7" height="19" rx="1" fill="#f09433"/><rect x="1.5" y="3" width="1.5" height="19" fill="rgba(0,0,0,0.2)"/><rect x="9.5" y="1" width="8" height="21" rx="1" fill="#dc2743"/><rect x="10.5" y="1" width="1.5" height="21" fill="rgba(0,0,0,0.2)"/><g transform="rotate(-12, 17.5, 1)"><rect x="17.5" y="1" width="7" height="22" rx="1" fill="#bc1888"/><rect x="18.5" y="1" width="1.5" height="22" fill="rgba(0,0,0,0.2)"/></g><line x1="0" y1="22.5" x2="30" y2="22.5" stroke="#e6683c" stroke-width="1.5" stroke-linecap="round"/></svg>Stacks</button>
     <button class="nav-btn" data-tab="read" onclick="switchTab('read')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Read</button>
     <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
@@ -4333,9 +4347,20 @@ function refreshGenreFilters() {
 }
 
 // ─── Search ───
+// Search now lives on the Discover tab: submitting a query swaps the swipe deck +
+// category pills for the results list; clearing returns to the deck.
+let _searchMode = false;
+function enterSearchMode() {
+  _searchMode = true;
+  document.getElementById('categoryPills').style.display = 'none';
+  document.getElementById('discoverArea').style.display = 'none';
+  document.getElementById('searchResults').style.display = 'flex';
+}
+
 async function doSearch() {
   const query = document.getElementById('searchInput').value.trim();
   if (!query) return;
+  enterSearchMode();
   document.getElementById('searchClear').classList.add('visible');
   const el = document.getElementById('searchResults');
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Searching...</span></div>';
@@ -4381,13 +4406,26 @@ function addFromSearch(i) {
 }
 
 function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchResults').innerHTML = '';
+  _searchMode = false;
+  const inp = document.getElementById('searchInput');
+  inp.value = '';
+  const res = document.getElementById('searchResults');
+  res.innerHTML = '';
+  res.style.display = 'none';
   document.getElementById('searchClear').classList.remove('visible');
-  document.getElementById('searchInput').focus();
+  document.getElementById('discoverArea').style.display = '';
+  document.getElementById('categoryPills').style.display = 'flex';
+  inp.focus();
 }
 
 document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+document.getElementById('searchInput').addEventListener('input', e => {
+  document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
+  if (!e.target.value && _searchMode) clearSearch();
+});
+
+// Activity feed — implemented in Phase B; stub keeps switchTab safe until then.
+function renderFeed() {}
 
 // ─── Stats ───
 // Count books by genre, where a book's genres = its category PLUS every custom
@@ -4554,14 +4592,17 @@ function switchTab(tab) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(`screen-${tab}`).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('categoryPills').style.display = tab === 'discover' ? 'flex' : 'none';
+  const isDiscover = tab === 'discover';
+  // Discover has the search bar (always) + category pills (hidden while showing search results).
+  document.getElementById('discoverSearchBar').style.display = isDiscover ? 'flex' : 'none';
+  document.getElementById('categoryPills').style.display = (isDiscover && !_searchMode) ? 'flex' : 'none';
   if (tab === 'library') renderLibrary();
   if (tab === 'read') renderReadList();
-  if (tab === 'profile') {
-    renderStats(); renderProfileTab();
-    // Refresh friends/requests in the background so new requests show up without a reload
-    if (currentUser && _fbDb) loadSocialState().then(renderProfileTab);
+  if (tab === 'friends') {
+    renderFriendsSection();
+    if (currentUser && _fbDb) loadSocialState().then(() => { renderFriendsSection(); renderFeed(); });
   }
+  if (tab === 'profile') renderStats(), renderProfileTab();
 }
 
 // ─── Refresh books with Google Books data ───
@@ -5464,7 +5505,7 @@ async function acceptFriendRequest(fromUid) {
     _friends.push({ uid: fromUid, ...req });
     _incomingRequests = _incomingRequests.filter(r => r.uid !== fromUid);
     showToast('You and @' + req.username + ' are now friends');
-    renderProfileTab();
+    renderFriendsSection(); renderProfileTab();
   } catch (e) { console.warn('acceptFriendRequest failed:', e); showToast('Could not accept'); }
 }
 
@@ -5490,7 +5531,7 @@ async function removeFriend(otherUid) {
     await batch.commit();
     _friends = _friends.filter(f => f.uid !== otherUid);
     showToast('Friend removed');
-    renderProfileTab();
+    renderFriendsSection(); renderProfileTab();
     closeUserModal();
   } catch (e) { console.warn('removeFriend failed:', e); showToast('Could not remove'); }
 }
@@ -5507,16 +5548,13 @@ function relationshipTo(uid) {
 // ─── Rendering ───
 function renderProfileTab() {
   if (!currentUser) {
-    // Guest mode — show a hint and hide friends section
     document.getElementById('profileTabAvatar').textContent = '?';
     document.getElementById('profileTabName').textContent = 'Guest';
     document.getElementById('profileTabHandle').textContent = 'Sign in to connect with friends';
     document.getElementById('profileTabFriendCount').textContent = '';
     document.getElementById('profileTabClaimBtn').style.display = 'none';
-    document.getElementById('friendsSection').style.display = 'none';
     return;
   }
-  // Avatar
   const avatarEl = document.getElementById('profileTabAvatar');
   const photo = _profile?.photoURL;
   if (photo) avatarEl.innerHTML = `<img src="${escUser(photo)}" alt="">`;
@@ -5525,18 +5563,30 @@ function renderProfileTab() {
   document.getElementById('profileTabHandle').textContent = _profile?.username ? '@' + _profile.username : '';
   document.getElementById('profileTabFriendCount').textContent =
     _profile?.username ? `${_friends.length} friend${_friends.length === 1 ? '' : 's'}` : '';
-  // Claim button vs friends section
-  if (!_profile?.username) {
-    document.getElementById('profileTabClaimBtn').style.display = '';
-    document.getElementById('friendsSection').style.display = 'none';
-  } else {
-    document.getElementById('profileTabClaimBtn').style.display = 'none';
-    document.getElementById('friendsSection').style.display = '';
-    renderFriendsSection();
-  }
+  // Prompt to claim a username (the friend/feed experience lives on the Friends tab).
+  document.getElementById('profileTabClaimBtn').style.display = _profile?.username ? 'none' : '';
 }
 
 function renderFriendsSection() {
+  const hint = document.getElementById('friendsSigninHint');
+  const searchWrap = document.querySelector('#screen-friends .friends-search-wrap');
+  const wrapIds = ['friendsSearchResults', 'incomingRequestsWrap', 'outgoingRequestsWrap', 'feedWrap', 'friendsListWrap'];
+  const ready = currentUser && _fbDb && _profile && _profile.username;
+  if (!ready) {
+    if (searchWrap) searchWrap.style.display = 'none';
+    hint.style.display = '';
+    hint.textContent = !currentUser
+      ? 'Sign in to connect with friends and see their activity.'
+      : 'Pick a username on your Profile tab to connect with friends.';
+    wrapIds.forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
+    return;
+  }
+  if (searchWrap) searchWrap.style.display = '';
+  hint.style.display = 'none';
+
+  // Feed goes up top (populated in Phase B; a no-op stub for now).
+  renderFeed();
+
   // Incoming requests
   const inWrap = document.getElementById('incomingRequestsWrap');
   if (_incomingRequests.length) {
