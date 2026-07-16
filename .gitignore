@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Firebase CLI cache / local state
+.firebase/
+*-debug.log
+firebase-debug.log
+firestore-debug.log
+
+# Claude Code local state (settings, worktrees, scratch)
+.claude/
